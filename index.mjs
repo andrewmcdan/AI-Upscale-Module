@@ -34,4 +34,4 @@ const upscale = async (inputFile) => {
     // });
 }
 
-exports.upscale = upscale;
+exports.default = upscale;
