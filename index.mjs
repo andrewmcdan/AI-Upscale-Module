@@ -250,7 +250,7 @@ async function downloadAndUnzip(url, zipPath, extractPath) {
         // console.log('Downloaded zip file2');
         // const buffer = Buffer.from(arrayBuffer);
         // Saving the zip file to the disk
-        fs.writeFileSync(zipPath, buffer);
+        //fs.writeFileSync(zipPath, buffer);
 
         const fileInfo = downloader.download(url, zipPath);
 
