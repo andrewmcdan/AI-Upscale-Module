@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Upscale images using AI",
   "main": "index.mjs",
-  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -16,5 +15,10 @@
   "bugs": {
     "url": "https://github.com/andrewmcdan/ai-upscale-module/issues"
   },
-  "homepage": "https://github.com/andrewmcdan/ai-upscale-module#readme"
+  "homepage": "https://github.com/andrewmcdan/ai-upscale-module#readme",
+  "dependencies": {
+    "adm-zip":"^0.5.10",
+    "fs": "^0.0.1-security",
+    "node-fetch": "^2.6.1"
+  }
 }
