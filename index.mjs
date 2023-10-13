@@ -4,6 +4,13 @@ import fetch from 'node-fetch';
 import { exec, execFile, execSync } from 'child_process';
 import { stdout } from 'process';
 
+// TODO: rewrite this into a class
+class Upscaler{
+    constructor(options) {
+        this.options = options;
+    }
+}
+
 const upscale = async (inputFile, outputPath = null, format = "jpg", scale = 4) => {
     // check to see if inputFile exists
     if (!fs.existsSync(inputFile)) {
@@ -133,14 +140,14 @@ const upscale = async (inputFile, outputPath = null, format = "jpg", scale = 4) 
         }
         console.error('Upscaler is not installed. Attempting to aquire.');
         let platform = process.platform;
-        if(platform === 'wi1n32') {
+        if(platform === 'win32') {
             // download windows upscaler
             //let upscaler = await fetch('https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/releases/download/v0.2.0/realesrgan-ncnn-vulkan-v0.2.0-windows.zip');
             //unzip upscaler
             // log step
             console.log('Downloading and unzipping upscaler');
             let success = await downloadAndUnzip('https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/releases/download/v0.2.0/realesrgan-ncnn-vulkan-v0.2.0-windows.zip',
-            'zipped/','unzipped/');
+            'zipped/realesrgan-ncnn-vulkan-v0.2.0-windows.zip','unzipped/');
             if(success) {
                 console.log('Successfully downloaded and unzipped upscaler');
             }else{
@@ -162,10 +169,17 @@ const upscale = async (inputFile, outputPath = null, format = "jpg", scale = 4) 
         // download models
         // log step
         console.log('Downloading and unzipping models');
-        let success = await downloadAndUnzip('https://github.com/upscayl/custom-models/archive/refs/heads/main.zip','zipped/','unzipped/');
+        let success = await downloadAndUnzip('https://github.com/upscayl/custom-models/archive/refs/heads/main.zip','zipped/main.zip','unzipped/');
         if(!success) {
+            //move unzipped folder to models folder
+            fs.renameSync('./unzipped/custom-models-main','./models/custom-models-main');
             return false;
         }
+    }
+
+    // if zipped folder exists, remove it
+    if (fs.existsSync('./zipped')) {
+        fs.rmdirSync('./zipped', { recursive: true });
     }
 
     // run upscaler
@@ -220,13 +234,20 @@ async function waitSeconds(count) {
 async function downloadAndUnzip(url, zipPath, extractPath) {
     try {
         // Fetching the zip file
-        const response = await fetch(url,{
-            onprogress: (progress) => {
-                console.log(progress);
-            }
-        });
+        const response = await fetch(url);
+        // const totalSize = response.headers.get('content-length');
+        // if(isNaN(totalSize)) {
+        //     console.error('Failed to download and unzip: ' + error);
+        //     return false;
+        // }
+
+        // const fileStream = fs.createWriteStream(zipPath);
+
+
         // Getting the buffer of the downloaded file
+        console.log('Downloading zip file1');
         const arrayBuffer = await response.arrayBuffer();
+        console.log('Downloaded zip file2');
         const buffer = Buffer.from(arrayBuffer);
         // Saving the zip file to the disk
         fs.writeFileSync(zipPath, buffer);
@@ -236,6 +257,7 @@ async function downloadAndUnzip(url, zipPath, extractPath) {
         return true;
     } catch (error) {
         // log step
+        console.error('Failed to download and unzip: ' + error);
         return false;
     }
 }
