@@ -174,12 +174,22 @@ const upscale = async (inputFile, outputPath = null, format = "jpg", scale = 4) 
     }
 
     if (!modelsFound) {
+        if (!fs.existsSync('./zipped')) {
+            fs.mkdirSync('./zipped');
+        }
+        // checked to see if unzipped folder exists
+        if (!fs.existsSync('./unzipped')) {
+            fs.mkdirSync('./unzipped');
+        }
         // download models
         // log step
         console.log('Downloading and unzipping models');
         let success = await downloadAndUnzip('https://github.com/upscayl/custom-models/archive/refs/heads/main.zip', 'zipped/main.zip', 'unzipped/');
         if (!success) {
             //move unzipped folder to models folder
+            if (!fs.existsSync('./models')) {
+                fs.mkdirSync('./models');
+            }
             fs.renameSync('./unzipped/custom-models-main', './models/custom-models-main');
             return false;
         }
@@ -187,7 +197,7 @@ const upscale = async (inputFile, outputPath = null, format = "jpg", scale = 4) 
 
     // if zipped folder exists, remove it
     if (fs.existsSync('./zipped')) {
-        fs.rmdirSync('./zipped', { recursive: true });
+        fs.rmSync('./zipped', { recursive: true });
     }
 
     // run upscaler
@@ -245,23 +255,26 @@ async function downloadAndUnzip(url, zipPath, extractPath) {
         // const response = await fetch(url);
 
         // Getting the buffer of the downloaded file
-        // console.log('Downloading zip file1');
+        console.log('Downloading zip file1');
         // const arrayBuffer = await response.arrayBuffer();
         // console.log('Downloaded zip file2');
         // const buffer = Buffer.from(arrayBuffer);
         // Saving the zip file to the disk
         //fs.writeFileSync(zipPath, buffer);
 
-        const fileInfo = downloader.download(url, zipPath);
+        console.log({zipPath})
 
-        downloader.on('progress', (data) => {
-            console.log('Download progress: ', data);
+        const fileInfo = downloader.download(url, './zipped/');
+
+        downloader.on("progress", (info) => {
+            console.log('Download progress: ', info);
         });
 
         // Unzipping the downloaded file
         // const zip = new AdmZip(zipPath);
         // zip.extractAllTo(extractPath, true);
         await waitSeconds(60);
+        console.log(fileInfo.status, downloader.status.END)
         return true;
     } catch (error) {
         // log step
