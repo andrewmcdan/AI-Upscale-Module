@@ -12,28 +12,51 @@ const flags = {
     UNDEFINED: "UNDEFINED"
 }
 
-// TODO: rewrite this into a class
 class Upscaler {
     constructor(options) {
         // first we check to see if the assests are downloded (upscaler and models). This sets the flags.
         // if they are not downloaded, we download them in the background
-        // if they are downloaded, we set flags indicating that they are downloaded
+        if (options == undefined || options == null) {
+            options = {};
+        }
+        if (options.defaultScale == undefined || options.defaultScale == null) {
+            options.defaultScale = 4;
+        }
+        if (options.defaultFormat == undefined || options.defaultFormat == null) {
+            options.defaultFormat = "jpg";
+        } else if (options.defaultFormat !== "jpg" && options.defaultFormat !== "png") {
+            options.defaultFormat = "jpg";
+        }
+        if (options.defaultOutputPath == undefined || options.defaultOutputPath == null) {
+            options.defaultOutputPath = "./output/upscaled/";
+        }
+        if (options.downloadProgressCallback === undefined || options.downloadProgressCallback === null) {
+            options.downloadProgressCallback = null;
+        }
+
         this.options = options;
-        this.downloadProgressCallback = null;
+        this.downloadProgressCallback = options.downloadProgressCallback;
         this.upscaler = {};
         this.models = {};
         this.models.status = flags.UNDEFINED;
         this.upscaler.status = flags.UNDEFINED;
-        console.log('Checking for assets');
+        // console.log('Checking for assets');
+        this.status = "Checking for assets";
         this.checkForAssets();
         if (this.upscaler.status != flags.READY || this.models.status != flags.READY) {
-            console.log('Assets not found. Downloading assets');
+            // console.log('Assets not found. Downloading assets');
+            this.status = "Assets not found. Downloading assets";
             this.downloadAssets().then((success) => {
-                console.log('Assets downloaded');
+                //console.log('Assets downloaded');
                 this.checkForAssets();
+                this.status = "Assets downloaded, Upscaler ready";
             }).catch((error) => {
-                console.log('Error downloading assets');
+                // console.log('Error downloading assets');
+                this.status = "Error downloading assets";
             });
+        }
+        if (this.upscaler.status == flags.READY && this.models.status == flags.READY) {
+            this.status = "Upscaler ready";
         }
     }
 
@@ -139,7 +162,10 @@ class Upscaler {
     }
 
     async downloadAssets() {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
+            const owner = 'xinntao';
+            const repo = 'Real-ESRGAN-ncnn-vulkan';
+            let assetName = 'windows.zip';
             let downloadSuceess = false;
             try {
                 // checked to see if zipped folder exists
@@ -159,25 +185,30 @@ class Upscaler {
             if (platform === 'win32') {
                 // download windows upscaler
                 this.upscaler.status = flags.DOWNLOADING;
-                this.downloadAndUnzip('https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/releases/download/v0.2.0/realesrgan-ncnn-vulkan-v0.2.0-windows.zip',
-                    './zipped/realesrgan-ncnn-vulkan-v0.2.0-windows.zip', 'unzipped/').then((success) => {
-                        if (success) this.upscaler.status = flags.DOWNLOADED;
-                        downloadSuceess = success;
-                    }).catch((error) => {
-                        resolve(false);
-                    }).finally(() => {
-                        if (this.models.status == flags.DOWNLOADED && this.upscaler.status == flags.DOWNLOADED) {
-                            // if zipped folder exists, remove it
-                            try {
-                                if (fs.existsSync('./zipped')) {
-                                    fs.rmSync('./zipped', { recursive: true });
-                                }
-                            } catch (e) {
-                                resolve(false);
+
+                // Replace 'owner' and 'repo' with the GitHub repository's owner and name.
+                let tagName = await getLatestReleaseVersion(owner, repo);
+                let dlLink = await getReleaseDownloadLink(owner, repo, tagName, assetName);
+                let latestVersion = await getLatestReleaseVersion(owner, repo);
+
+                this.downloadAndUnzip(dlLink, './zipped/realesrgan-ncnn-vulkan-' + latestVersion + '-windows.zip', 'unzipped/').then((success) => {
+                    if (success) this.upscaler.status = flags.DOWNLOADED;
+                    downloadSuceess = success;
+                }).catch((error) => {
+                    resolve(false);
+                }).finally(() => {
+                    if (this.models.status == flags.DOWNLOADED && this.upscaler.status == flags.DOWNLOADED) {
+                        // if zipped folder exists, remove it
+                        try {
+                            if (fs.existsSync('./zipped')) {
+                                fs.rmSync('./zipped', { recursive: true });
                             }
-                            resolve(true);
+                        } catch (e) {
+                            resolve(false);
                         }
-                    });
+                        resolve(true);
+                    }
+                });
             } else if (platform === 'darwin') {
                 // download mac upscaler
                 //let upscaler = await fetch('https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/releases/download/v0.2.0/realesrgan-ncnn-vulkan-v0.2.0-macos.zip')
@@ -189,56 +220,58 @@ class Upscaler {
                 resolve(false);
             }
 
-            console.log('Downloading and unzipping models');
-            this.models.status = flags.DOWNLOADING;
-            this.downloadAndUnzip('https://github.com/upscayl/custom-models/archive/refs/heads/main.zip', './zipped/main.zip', 'unzipped/').then((success) => {
-                if (success) {
-                    //move unzipped folder to models folder
-                    try {
-                        // make sure the root folder exists
-                        if (!fs.existsSync('./models')) {
-                            fs.mkdirSync('./models');
+            if (this.models.status != flags.READY && this.models.status != flags.DOWNLOADED) {
+                console.log('Downloading and unzipping models');
+                this.models.status = flags.DOWNLOADING;
+                this.downloadAndUnzip('https://github.com/upscayl/custom-models/archive/refs/heads/main.zip', './zipped/main.zip', 'unzipped/').then((success) => {
+                    if (success) {
+                        //move unzipped folder to models folder
+                        try {
+                            // make sure the root folder exists
+                            if (!fs.existsSync('./models')) {
+                                fs.mkdirSync('./models');
+                            }
+                            // copy files from unzipped folder to models folder
+                            // find the folder name
+                            let unzippedModelsFolder = fs.readdirSync('./unzipped/custom-models-main/models/');
+                            // check to make sure /models/custom-models-main/models/ exists
+                            if (!fs.existsSync('./models/custom-models-main/')) {
+                                fs.mkdirSync('./models/custom-models-main/');
+                            }
+                            if (!fs.existsSync('./models/custom-models-main/models/')) {
+                                fs.mkdirSync('./models/custom-models-main/models/');
+                            }
+                            // copy files
+                            let destFolder = './models/custom-models-main/models/';
+                            unzippedModelsFolder.forEach((file, i) => {
+                                fs.copyFileSync('./unzipped/custom-models-main/models/' + file, destFolder + file);
+                            });
+                            // remove extraneous files
+                            fs.rmSync('./unzipped/custom-models-main/', { recursive: true });
+                            downloadSuceess = true;
+                            this.models.status = flags.DOWNLOADED;
+                        } catch (e) {
+                            resolve(false);
                         }
-                        // copy files from unzipped folder to models folder
-                        // find the folder name
-                        let unzippedModelsFolder = fs.readdirSync('./unzipped/custom-models-main/models/');
-                        // check to make sure /models/custom-models-main/models/ exists
-                        if (!fs.existsSync('./models/custom-models-main/')) {
-                            fs.mkdirSync('./models/custom-models-main/');
-                        }
-                        if (!fs.existsSync('./models/custom-models-main/models/')) {
-                            fs.mkdirSync('./models/custom-models-main/models/');
-                        }
-                        // copy files
-                        let destFolder = './models/custom-models-main/models/';
-                        unzippedModelsFolder.forEach((file, i) => {
-                            fs.copyFileSync('./unzipped/custom-models-main/models/' + file, destFolder + file);
-                        });
-                        // remove extraneous files
-                        fs.rmSync('./unzipped/custom-models-main/', { recursive: true });
-                        downloadSuceess = true;
-                        this.models.status = flags.DOWNLOADED;
-                    } catch (e) {
+                    } else {
                         resolve(false);
                     }
-                } else {
+                }).catch((error) => {
                     resolve(false);
-                }
-            }).catch((error) => {
-                resolve(false);
-            }).finally(() => {
-                if (this.models.status == flags.DOWNLOADED && this.upscaler.status == flags.DOWNLOADED) {
-                    // if zipped folder exists, remove it
-                    try {
-                        if (fs.existsSync('./zipped')) {
-                            fs.rmSync('./zipped', { recursive: true });
+                }).finally(() => {
+                    if (this.models.status == flags.DOWNLOADED && this.upscaler.status == flags.DOWNLOADED) {
+                        // if zipped folder exists, remove it
+                        try {
+                            if (fs.existsSync('./zipped')) {
+                                fs.rmSync('./zipped', { recursive: true });
+                            }
+                        } catch (e) {
+                            resolve(false);
                         }
-                    } catch (e) {
-                        resolve(false);
+                        resolve(true);
                     }
-                    resolve(true);
-                }
-            });
+                });
+            }
         });
     }
 
@@ -246,71 +279,69 @@ class Upscaler {
         this.downloadProgressCallback = callback;
     }
 
-    async upscale(inputFile, outputPath = null, format = "jpg", scale = 4) {
-        if (this.upscaler.status != flags.READY || this.models.status != flags.READY) {
-            console.error('Upscaler is not ready');
-            return false;
-        }
-        // check to see if inputFile exists
-        if (!fs.existsSync(inputFile)) {
-            console.error('File does not exist');
-            return false;
-        }
+    async upscale(inputFile, outputPath = null, format = "", scale = -1) {
+        if (outputPath == null) outputPath = this.options.defaultOutputPath;
+        if (format == "") format = this.options.defaultFormat;
+        if (scale == -1) scale = this.options.defaultScale;
+        return new Promise(async (resolve, reject) => {
+            if (this.upscaler.status != flags.READY || this.models.status != flags.READY) {
+                console.error('Upscaler is not ready');
+                resolve(false);
+            }
+            // check to see if inputFile exists
+            if (!fs.existsSync(inputFile)) {
+                console.error('File does not exist');
+                resolve(false);
+            }
 
-        // check to see if inputFile is a valid image
-        if (!inputFile.endsWith('.png')) {
-            console.error('File is not a valid image');
-            return false;
-        }
+            // check to see if inputFile is a valid image
+            if (!inputFile.endsWith('.png')) {
+                console.error('File is not a valid image');
+                resolve(false);
+            }
 
-        // check to see if output path exists and create it if it doesn't
-        if (outputPath === null) {
-            // absolute path of input file
-            let inputFolder = inputFile.substring(0, inputFile.lastIndexOf('/'));
-            // set output path to be the same as input file + upscaled
-            outputPath = inputFolder + '/' + "upscaled";
-        }
-        let outputFile = inputFile.substring(inputFile.lastIndexOf('/') + 1, inputFile.lastIndexOf('.')) + '-upscaled.' + format;
-        if (!fs.existsSync(outputPath)) {
-            // create output path
-            fs.mkdirSync(outputPath);
-        }
+            let outputFile = inputFile.substring(inputFile.lastIndexOf('/') + 1, inputFile.lastIndexOf('.')) + '-upscaled.' + format;
+            if (!fs.existsSync(outputPath)) {
+                // create output path
+                fs.mkdirSync(outputPath);
+            }
 
-        if (format !== "jpg" && format !== "png") {
-            console.error('Format is not supported');
-            return false;
-        }
+            if (format !== "jpg" && format !== "png") {
+                console.error('Format is not supported');
+                resolve(false);
+            }
 
-        if (scale !== 2 && scale !== 3 && scale !== 4) {
-            console.error('Scale is not supported');
-            return false;
-        }
+            if (scale !== 2 && scale !== 3 && scale !== 4) {
+                console.error('Scale is not supported');
+                resolve(false);
+            }
 
-        // run upscaler
-        // resolve absolute paths
-        this.upscaler.path = fs.realpathSync(this.upscaler.path);
-        inputFile = fs.realpathSync(inputFile);
-        outputFile = fs.realpathSync(outputPath) + '/' + outputFile;
-        this.models.path = fs.realpathSync(this.models.path);
-        let execString = this.upscaler.path;
-        execString += " -i " + "\"" + inputFile + "\"";
-        execString += " -o " + "\"" + outputFile + "\"";
-        execString += " -f " + format;
-        execString += " -s " + scale;
-        execString += " -m " + "\"" + this.models.path + "\"";
-        execString += " -n ultrasharp-2.0.1 ";
-        let scaling = exec(execString, (err, stdout, stderr) => { });
-        scaling.stderr.on('data', (data) => {
-            // TODO: call progress callback
+            // run upscaler
+            // resolve absolute paths
+            this.upscaler.path = fs.realpathSync(this.upscaler.path);
+            inputFile = fs.realpathSync(inputFile);
+            outputFile = fs.realpathSync(outputPath) + '/' + outputFile;
+            this.models.path = fs.realpathSync(this.models.path);
+            let execString = this.upscaler.path;
+            execString += " -i " + "\"" + inputFile + "\"";
+            execString += " -o " + "\"" + outputFile + "\"";
+            execString += " -f " + format;
+            execString += " -s " + scale;
+            execString += " -m " + "\"" + this.models.path + "\"";
+            execString += " -n ultrasharp-2.0.1 ";
+            let scaling = exec(execString, (err, stdout, stderr) => { });
+            scaling.stderr.on('data', (data) => {
+                // TODO: call progress callback
+            });
+            while (scaling.exitCode === null) {
+                await this.waitSeconds(5);
+            }
+            if (scaling.exitCode == 0) {
+                resolve(true);
+            } else {
+                resolve(false);
+            }
         });
-        while (scaling.exitCode === null) {
-            await this.waitSeconds(5);
-        }
-        if (scaling.exitCode == 0) {
-            return true;
-        } else {
-            return false;
-        }
     }
 
     downloadAndUnzip = (url, zipPath, extractPath) => {
@@ -351,11 +382,11 @@ class Upscaler {
                 });
 
                 const loadPromise = download.load();
-                loadPromise.then(() => { downloading = false; }).catch(() => { downloading = false; reject(false);});
+                loadPromise.then(() => { downloading = false; }).catch(() => { downloading = false; reject(false); });
 
                 while (downloading) {
                     await this.waitSeconds(0.5);
-                    if(this.downloadProgressCallback !== null) this.downloadProgressCallback();
+                    if (this.downloadProgressCallback !== null) this.downloadProgressCallback();
                 }
 
                 const zip = new AdmZip(zipPath);
@@ -376,6 +407,47 @@ class Upscaler {
             }, count * 1000);
         });
     };
+}
+
+async function getLatestReleaseVersion(owner, repo) {
+    try {
+        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`);
+        const data = await response.json();
+        return data.tag_name;
+    } catch (error) {
+        // console.error('Error:', error);
+        return null;
+    }
+}
+
+async function getReleaseDownloadLink(owner, repo, tagName, assetName) {
+    try {
+        // Get the release by tag name
+        const releaseResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/tags/${tagName}`);
+        const releaseData = await releaseResponse.json();
+        // console.log("////////////////////////////////////////////");
+        // console.log(releaseData);
+        // Find the asset with the given name
+        let asset = false;
+        releaseData.assets.forEach((a) => {
+            // console.log(a.name);
+            if (a.name.lastIndexOf(assetName) != -1) {
+                // console.log("found");
+                asset = a;
+                // console.log(a.browser_download_url);
+            }
+        });
+
+        if (asset) {
+            // Return the download URL for the asset
+            return asset.browser_download_url;
+        } else {
+            // console.log(`Asset "${assetName}" not found in the release.`);
+            return null;
+        }
+    } catch (error) {
+        return null;
+    }
 }
 
 export default Upscaler;
