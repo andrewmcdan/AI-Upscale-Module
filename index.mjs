@@ -301,9 +301,16 @@ class Upscaler {
             }
 
             let outputFile = inputFile.substring(inputFile.lastIndexOf('/') + 1, inputFile.lastIndexOf('.')) + '-upscaled.' + format;
-            if (!fs.existsSync(outputPath)) {
-                // create output path
-                fs.mkdirSync(outputPath);
+            outputPath = outputPath.substring(0, outputPath.lastIndexOf('/')); // outputPath without file name
+            await this.waitSeconds(2);
+            try {
+                if (!fs.existsSync(outputPath)) {
+                    // create output path
+                    fs.mkdirSync(outputPath);
+                }
+            } catch (e) {
+                console.log(e);
+                process.exit(1);
             }
 
             if (format !== "jpg" && format !== "png") {
@@ -320,7 +327,7 @@ class Upscaler {
             // resolve absolute paths
             this.upscaler.path = fs.realpathSync(this.upscaler.path);
             inputFile = fs.realpathSync(inputFile);
-            outputFile = fs.realpathSync(outputPath) + '/' + outputFile;
+            outputFile = fs.realpathSync(outputPath) + '\\\\' + outputFile;
             this.models.path = fs.realpathSync(this.models.path);
             let execString = this.upscaler.path;
             execString += " -i " + "\"" + inputFile + "\"";
