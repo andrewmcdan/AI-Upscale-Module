@@ -1,5 +1,5 @@
 # AI-Upscale-Module
-This is a node.js module that uses [Real-ESRGAN ncnn Vulkan](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan) to upscale images. See the Real-ESRGAN page for details on system requirements to run the up-scaler. Notably, it only works with PNG files on Vulkan capable GPUs.
+This is a node.js module that uses [Real-ESRGAN ncnn Vulkan](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan) to upscale images. See the Real-ESRGAN page for details on system requirements to run the up-scaler. Notably, it only works with PNG files on Vulkan capable GPUs. Currently, the module only supports Windows, but it should be possible to get it working on Linux and Mac. I just haven't done it yet. Feel free to submit a PR if you get it working.
 
 ## Usage
 ```javascript
@@ -50,6 +50,9 @@ The first time you run the module (like the first time on in that particular wor
 Once it gets everything downloaded and unzipped, it will be ready to upscale images for. 
 
 The default model that it uses was selected because it looks quite good when working with images from Midjourney. It is quite possible to modify this code so that it uses a different model. There are several in the models folder that gets downloaded. 
+
+## Contributing
+If you want to contribute, feel free to submit a PR. I'm not a node.js developer, so I'm sure there are things that could be done better. Also, please feel free to submit issues if you find bugs or have suggestions. Mac and Linux support would be great. These should be easy to add, but I don't have a Mac and I don't have a Linux machine with a Vulkan capable GPU. 
 
 ## Disclaimer
 I make no warrantees or guarantees about this software. I can't be sure that this implementation doesn't violate the terms of use or license for Real-ESRGAN or Upscayl. Use at your own risk.

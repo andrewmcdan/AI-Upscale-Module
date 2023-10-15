@@ -105,6 +105,10 @@ class Upscaler {
             this.upscaler.path = "";
         }
 
+        if(this.upscaler.status == flags.NOT_DOWNLOADED) {
+            console.log('Upscaler is not installed. Will attempt to aquire in background.');
+        }
+
         // find upscale model
         let modelsFound = false;
         let modelsFolder = "";
@@ -149,8 +153,8 @@ class Upscaler {
                 });
             }
         }
-        console.log({ modelsFound });
-        console.log({ modelsFolder });
+        // console.log({ modelsFound });
+        // console.log({ modelsFolder });
 
         if (modelsFound) {
             this.models.status = flags.READY;
@@ -158,6 +162,7 @@ class Upscaler {
         } else {
             this.models.status = flags.NOT_DOWNLOADED;
             this.models.path = "";
+            console.log('Models not found. Will attempt to aquire in background.');
         }
     }
 
@@ -180,7 +185,7 @@ class Upscaler {
                 console.error('Error creating folders');
                 resolve(false);
             }
-            console.error('Upscaler is not installed. Attempting to aquire.');
+            
             let platform = process.platform;
             if (platform === 'win32') {
                 // download windows upscaler
@@ -212,16 +217,17 @@ class Upscaler {
             } else if (platform === 'darwin') {
                 // download mac upscaler
                 //let upscaler = await fetch('https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/releases/download/v0.2.0/realesrgan-ncnn-vulkan-v0.2.0-macos.zip')
+                console.error('Platform not supported');
             } else if (platform === 'linux') {
                 // download linux upscaler
                 //let upscaler = await fetch('https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/releases/download/v0.2.0/realesrgan-ncnn-vulkan-v0.2.0-ubuntu.zip')
+                console.error('Platform not supported');
             } else {
                 console.error('Platform not supported');
                 resolve(false);
             }
 
             if (this.models.status != flags.READY && this.models.status != flags.DOWNLOADED) {
-                console.log('Downloading and unzipping models');
                 this.models.status = flags.DOWNLOADING;
                 this.downloadAndUnzip('https://github.com/upscayl/custom-models/archive/refs/heads/main.zip', './zipped/main.zip', 'unzipped/').then((success) => {
                     if (success) {
@@ -383,13 +389,21 @@ class Upscaler {
                     timeout: 300000,
                     retries: 3,
                     onRetry: (error) => {
-                        console.log("Download error. Retrying: ", error);
+                        console.log("Download error. Retrying: ", {error}, {url}, {zipPath}, {extractPath});
                     },
-                    minSizeToShowProgress: 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 // 1YB, effectively disables progress bar
+                    minSizeToShowProgress: Infinity
                 });
 
-                const loadPromise = download.load();
-                loadPromise.then(() => { downloading = false; }).catch(() => { downloading = false; reject(false); });
+                download.load().then(() => { 
+                    downloading = false; 
+                    download.onRetry = null;
+                }).catch(() => { 
+                    downloading = false;
+                    download.onRetry = null;
+                    reject(false); 
+                });
+
+                // console.log({download});
 
                 while (downloading) {
                     await this.waitSeconds(0.5);
@@ -400,6 +414,7 @@ class Upscaler {
                 zip.extractAllTo(extractPath, true);
                 resolve(true);
             } catch (error) {
+                console.error("Error: ", {error});
                 reject(false);
             }
         });
