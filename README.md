@@ -14,28 +14,31 @@ let upscaler = new Upscaler({
     });
 
 let file = "path_to_file.png";
-let outputPath = "path_to_output";
 
-upscaler.upscale(file, outputPath).then(async () => {
+
+upscaler.upscale(file).then(async () => {
                 // do something when the upscale is complete
             });
 
     ----- OR -----
 
 // for synchronous version, if you want to wait for the write to complete or error
-await upscaler.upscale(file, outputPath);
+await upscaler.upscale(file);
 
     ----- OR -----
 
 // asynchronous
-upscaler.upscale(file, outputPath);
+upscaler.upscale(file);
 ```
 
 upscale() can also take per call options for output filetype and scale.
 
 ```javascript
-await upscaler.upscale(file, outputPath, "png", 4);
+let outputPath = "path_to_output";
+
+await upscaler.upscale(file, outputPath,  "png", 4);
 ```
+
 
 ## How it works
 As mentioned above, this module depends on [Real-ESRGAN ncnn Vulkan](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan) along with (at least) one of the models available from (Upscayl's)[https://github.com/upscayl/upscayl] (custom models)[https://github.com/upscayl/custom-models/]. You could download all the resources yourself, but it's easier to let the module do the work for you. 
