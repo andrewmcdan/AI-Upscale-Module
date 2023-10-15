@@ -1,6 +1,6 @@
 {
   "name": "ai-upscale-module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Upscale images using AI",
   "main": "index.mjs",
   "scripts": {
@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/andrewmcdan/ai-upscale-module#readme",
   "dependencies": {
-    "adm-zip":"^0.5.10",
+    "adm-zip": "^0.5.10",
     "fs": "^0.0.1-security",
     "node-fetch": "^2.6.1",
     "large-download": "^1.0.0"
