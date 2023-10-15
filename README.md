@@ -5,16 +5,16 @@ This is a node.js module that uses [Real-ESRGAN ncnn Vulkan](https://github.com/
 ```javascript
 import Upscaler from 'ai-upscale-module';
 
+// param is an optional obj specifying defaults and a callback
 let upscaler = new Upscaler({
-    defaultOutputPath: [ absolute or relative path for output ],
-    defaultScale: [ 2, 3, or 4 ],
-    defaultFormat: [ jpg or png ],
-    downloadProgressCallback: [ callback that get called twice per second while a download is in progress ]
+    defaultOutputPath: "absolute or relative path for output",
+    defaultScale: 4, // can be 2, 3, or 4
+    defaultFormat: "jpg", // or "png"
+    downloadProgressCallback: ()=>{} // "callback that get called twice per second while a download is in progress"
     });
 
 let file = "path_to_file.png";
 let outputPath = "path_to_output";
-
 
 upscaler.upscale(file, outputPath).then(async () => {
                 // do something when the upscale is complete
