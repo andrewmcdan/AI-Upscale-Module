@@ -3,7 +3,7 @@ This is a node.js module that uses [Real-ESRGAN ncnn Vulkan](https://github.com/
 See the Real-ESRGAN page for details on system requirements to run the upscaler.
 
 ## Usage
-```
+```javascript
 import Upscaler from 'ai-upscale-module';
 
 let upscaler = new Upscaler({
@@ -34,6 +34,6 @@ upscaler.upscale(file, outputPath);
 
 upscale() can also take per call options for output filetype and scale.
 
-```
+```javascript
 await upscaler.upscale(file, outputPath, "png", 4);
 ```
