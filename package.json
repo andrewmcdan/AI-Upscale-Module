@@ -1,6 +1,6 @@
 {
   "name": "ai-upscale-module",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Upscale images using AI",
   "main": "index.mjs",
   "scripts": {
@@ -12,6 +12,17 @@
   },
   "author": "",
   "license": "GPL",
+  "keywords": [
+    "ai",
+    "upscale",
+    "image",
+    "images",
+    "image upscaler",
+    "image upscaling",
+    "image upscale",
+    "image upscale ai",
+    "image upscale node",
+    "Real-ESRGAN ncnn Vulkan","ESRGAN ","vulcan"],
   "bugs": {
     "url": "https://github.com/andrewmcdan/ai-upscale-module/issues"
   },
