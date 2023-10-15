@@ -20,6 +20,6 @@
     "adm-zip":"^0.5.10",
     "fs": "^0.0.1-security",
     "node-fetch": "^2.6.1",
-    "large-download": "^1.0.1"
+    "large-download": "^1.0.0"
   }
 }
