@@ -1,3 +1,9 @@
+// TODO: 
+// 1. Add support for mac and linux
+//   - d̶o̶w̶n̶l̶o̶a̶d̶ t̶h̶e̶ c̶o̶r̶r̶e̶c̶t̶ z̶i̶p̶ f̶i̶l̶e̶  (done, I think)
+//   - figure out how to run the upscaler
+// 2. Figure out a way to get the download progress
+
 import fs from 'fs';
 import AdmZip from 'adm-zip';
 import fetch from 'node-fetch';
@@ -105,7 +111,7 @@ class Upscaler {
             this.upscaler.path = "";
         }
 
-        if(this.upscaler.status == flags.NOT_DOWNLOADED) {
+        if (this.upscaler.status == flags.NOT_DOWNLOADED) {
             console.log('Upscaler is not installed. Will attempt to aquire in background.');
         }
 
@@ -166,12 +172,28 @@ class Upscaler {
         }
     }
 
+    removeZipFolder() {
+        // if zipped folder exists, remove it
+        let success = false;
+        try {
+            if (fs.existsSync('./zipped')) {
+                fs.rmSync('./zipped', { recursive: true });
+            }
+            // return true if successful or no zipped folder exists
+            success = true;
+        } catch (e) {
+            console.error('Error removing zipped folder');
+        }
+        return success;
+    }
+
     async downloadAssets() {
         return new Promise(async (resolve, reject) => {
             const owner = 'xinntao';
             const repo = 'Real-ESRGAN-ncnn-vulkan';
-            let assetName = 'windows.zip';
             let downloadSuceess = false;
+
+            // create some folders
             try {
                 // checked to see if zipped folder exists
                 if (!fs.existsSync('./zipped')) {
@@ -185,47 +207,36 @@ class Upscaler {
                 console.error('Error creating folders');
                 resolve(false);
             }
-            
+
+            // get platform name (windows, mac, linux) and set asset name
             let platform = process.platform;
-            if (platform === 'win32') {
-                // download windows upscaler
-                this.upscaler.status = flags.DOWNLOADING;
-
-                // Replace 'owner' and 'repo' with the GitHub repository's owner and name.
-                let tagName = await getLatestReleaseVersion(owner, repo);
-                let dlLink = await getReleaseDownloadLink(owner, repo, tagName, assetName);
-                let latestVersion = await getLatestReleaseVersion(owner, repo);
-
-                this.downloadAndUnzip(dlLink, './zipped/realesrgan-ncnn-vulkan-' + latestVersion + '-windows.zip', 'unzipped/').then((success) => {
-                    if (success) this.upscaler.status = flags.DOWNLOADED;
-                    downloadSuceess = success;
-                }).catch((error) => {
-                    resolve(false);
-                }).finally(() => {
-                    if (this.models.status == flags.DOWNLOADED && this.upscaler.status == flags.DOWNLOADED) {
-                        // if zipped folder exists, remove it
-                        try {
-                            if (fs.existsSync('./zipped')) {
-                                fs.rmSync('./zipped', { recursive: true });
-                            }
-                        } catch (e) {
-                            resolve(false);
-                        }
-                        resolve(true);
-                    }
-                });
-            } else if (platform === 'darwin') {
-                // download mac upscaler
-                //let upscaler = await fetch('https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/releases/download/v0.2.0/realesrgan-ncnn-vulkan-v0.2.0-macos.zip')
-                console.error('Platform not supported');
-            } else if (platform === 'linux') {
-                // download linux upscaler
-                //let upscaler = await fetch('https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/releases/download/v0.2.0/realesrgan-ncnn-vulkan-v0.2.0-ubuntu.zip')
-                console.error('Platform not supported');
-            } else {
+            let assetName = "";
+            if (platform === 'win32') assetName = 'windows.zip';
+            else if (platform === 'darwin') assetName = 'macos.zip';
+            else if (platform === 'linux') assetName = 'ubuntu.zip';
+            else {
                 console.error('Platform not supported');
                 resolve(false);
             }
+
+            // download windows upscaler
+            this.upscaler.status = flags.DOWNLOADING;
+
+            let tagName = await getLatestReleaseVersion(owner, repo);
+            let dlLink = await getReleaseDownloadLink(owner, repo, tagName, assetName);
+            let latestVersion = await getLatestReleaseVersion(owner, repo);
+
+            this.downloadAndUnzip(dlLink, './zipped/realesrgan-ncnn-vulkan-' + latestVersion + '-' + assetName, 'unzipped/').then((success) => {
+                if (success) this.upscaler.status = flags.DOWNLOADED;
+                downloadSuceess = success;
+            }).catch((error) => {
+                resolve(false);
+            }).finally(() => {
+                if (this.models.status == flags.DOWNLOADED && this.upscaler.status == flags.DOWNLOADED) {
+                    resolve(this.removeZipFolder());
+                }
+            });
+
 
             if (this.models.status != flags.READY && this.models.status != flags.DOWNLOADED) {
                 this.models.status = flags.DOWNLOADING;
@@ -266,15 +277,7 @@ class Upscaler {
                     resolve(false);
                 }).finally(() => {
                     if (this.models.status == flags.DOWNLOADED && this.upscaler.status == flags.DOWNLOADED) {
-                        // if zipped folder exists, remove it
-                        try {
-                            if (fs.existsSync('./zipped')) {
-                                fs.rmSync('./zipped', { recursive: true });
-                            }
-                        } catch (e) {
-                            resolve(false);
-                        }
-                        resolve(true);
+                        resolve(this.removeZipFolder());
                     }
                 });
             }
@@ -362,17 +365,17 @@ class Upscaler {
             let waitingForFilename = true;
             fetch(url).then((response) => {
                 const contentDisposition = response.headers.get("content-disposition");
-                console.log("contentDisposition: ", contentDisposition);
+                // console.log("contentDisposition: ", contentDisposition);
                 if (contentDisposition) {
                     const match = /filename=([^;]+)/.exec(contentDisposition);
                     if (match) {
                         const filename = match[1];
-                        console.log("File name:", filename);
+                        // console.log("File name:", filename);
                     } else {
-                        console.log("No filename found in Content-Disposition header");
+                        // console.log("No filename found in Content-Disposition header");
                     }
                 } else {
-                    console.log("Content-Disposition header not found in the response");
+                    // console.log("Content-Disposition header not found in the response");
                 }
             }).catch((error) => {
                 console.error("Error:", error);
@@ -389,21 +392,19 @@ class Upscaler {
                     timeout: 300000,
                     retries: 3,
                     onRetry: (error) => {
-                        console.log("Download error. Retrying: ", {error}, {url}, {zipPath}, {extractPath});
+                        console.log("Download error. Retrying: ", { error }, { url }, { zipPath }, { extractPath });
                     },
                     minSizeToShowProgress: Infinity
                 });
 
-                download.load().then(() => { 
-                    downloading = false; 
-                    download.onRetry = null;
-                }).catch(() => { 
+                download.load().then(() => {
                     downloading = false;
                     download.onRetry = null;
-                    reject(false); 
+                }).catch(() => {
+                    downloading = false;
+                    download.onRetry = null;
+                    reject(false);
                 });
-
-                // console.log({download});
 
                 while (downloading) {
                     await this.waitSeconds(0.5);
@@ -414,7 +415,7 @@ class Upscaler {
                 zip.extractAllTo(extractPath, true);
                 resolve(true);
             } catch (error) {
-                console.error("Error: ", {error});
+                console.error("Error: ", { error });
                 reject(false);
             }
         });
