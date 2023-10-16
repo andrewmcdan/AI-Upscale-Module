@@ -394,6 +394,9 @@ class Upscaler {
                     onRetry: (error) => {
                         console.log("Download error. Retrying: ", { error }, { url }, { zipPath }, { extractPath });
                     },
+                    onData: (downloaded, total) => {
+                        console.log( {downloaded}, {total});
+                    },
                     minSizeToShowProgress: Infinity
                 });
 
