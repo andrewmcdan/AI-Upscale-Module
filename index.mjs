@@ -9,6 +9,7 @@ import AdmZip from 'adm-zip';
 import fetch from 'node-fetch';
 import { exec } from 'child_process';
 import LargeDownload from 'large-download';
+import { parse } from 'path';
 
 const flags = {
     DOWNLOADING: "DOWNLOADING",
@@ -385,6 +386,7 @@ class Upscaler {
 
             try {
                 let downloading = true;
+                let downloadTotal = 0;
 
                 const download = new LargeDownload({
                     link: url,
@@ -395,7 +397,14 @@ class Upscaler {
                         console.log("Download error. Retrying: ", { error }, { url }, { zipPath }, { extractPath });
                     },
                     onData: (downloaded, total) => {
-                        console.log( {downloaded}, {total});
+                        // console.log( {downloaded}, {total});
+                        downloadTotal = parseInt(total);
+                        if(!isNaN(downloadTotal)) {
+                            // convert to MB and truncate to 2 decimal places
+                            downloadTotal = (downloadTotal / 1000000).toFixed(2);
+                            downloaded = (downloaded / 1000000).toFixed(2);
+                            console.log("Download progress: ", downloaded / downloadTotal);
+                        }
                     },
                     minSizeToShowProgress: Infinity
                 });
