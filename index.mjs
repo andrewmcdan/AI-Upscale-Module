@@ -19,6 +19,8 @@ const flags = {
     UNDEFINED: "UNDEFINED"
 }
 
+const modelsFileSize = 319059498;
+
 class Upscaler {
     constructor(options) {
         // first we check to see if the assests are downloded (upscaler and models). This sets the flags.
@@ -364,9 +366,13 @@ class Upscaler {
     downloadAndUnzip = (url, zipPath, extractPath) => {
         return new Promise(async (resolve, reject) => {
             let waitingForFilename = true;
+            let modelsFile = false;
             fetch(url).then((response) => {
                 const contentDisposition = response.headers.get("content-disposition");
                 // console.log("contentDisposition: ", contentDisposition);
+                if(contentDisposition.indexOf("custom-models-main.zip") != -1){
+                    modelsFile = true;
+                }
                 if (contentDisposition) {
                     const match = /filename=([^;]+)/.exec(contentDisposition);
                     if (match) {
@@ -386,7 +392,7 @@ class Upscaler {
 
             try {
                 let downloading = true;
-                let downloadTotal = 0;
+                let downloadTotal = modelsFile?modelsFileSize:0;
 
                 const download = new LargeDownload({
                     link: url,
@@ -398,12 +404,12 @@ class Upscaler {
                     },
                     onData: (downloaded, total) => {
                         // console.log( {downloaded}, {total});
-                        downloadTotal = parseInt(total);
+                        downloadTotal = modelsFile?modelsFileSize:parseInt(total);
                         if(!isNaN(downloadTotal)) {
                             // convert to MB and truncate to 2 decimal places
                             downloadTotal = (downloadTotal / 1000000).toFixed(2);
                             downloaded = (downloaded / 1000000).toFixed(2);
-                            console.log("Download progress: ", downloaded / downloadTotal);
+                            console.log("Download progress: ", (downloaded / downloadTotal).toFixed(2) * 100 + "%");
                         }
                     },
                     minSizeToShowProgress: Infinity
