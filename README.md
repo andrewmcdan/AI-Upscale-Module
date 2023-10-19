@@ -84,7 +84,7 @@ Making repeated calls to upscale() without await'ing it will initiate multiple i
 
 
 ## How it works
-As mentioned above, this module depends on [Real-ESRGAN ncnn Vulkan](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan) along with (at least) one of the models available from (Upscayl's)[https://github.com/upscayl/upscayl] (custom models)[https://github.com/upscayl/custom-models/]. You could download all the resources yourself, but it's easier to let the module do the work for you. 
+As mentioned above, this module depends on [Real-ESRGAN ncnn Vulkan](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan) along with (at least) one of the models available from [Upscayl's](https://github.com/upscayl/upscayl) [custom models](https://github.com/upscayl/custom-models/). You could download all the resources yourself, but it's easier to let the module do the work for you. 
 
 The first time you run the module (like the first time on in that particular working directory), it will check for resources and download whats needed. The models are about 300MB, so that could take a minute or two on slower connections, and unfortunately there's no progress indicator. So, you'll just have to wait for it to finish.
 
