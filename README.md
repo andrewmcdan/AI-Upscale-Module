@@ -44,15 +44,39 @@ await upscaler.upscale(file, outputPath, "png", 4, "uniscale_restore"); // Use u
 
 All of the other functions available in the class:
 ```javascript
-upscaler.setDefaultModel("modelName"); // Sets the model that the upscaler uses by default when one is not specified otherwise. If this is not called, the upscaler will use ultrasharp-2.0.1. Returns: nothing
-upscaler.getListOfModels(); // Returns: array of strings that represents all the available models
-upscaler.setMaxJobs(4); // Set the maximum number of concurrent jobs. by default, the max is 4. Set this as high as your hardware can handle.
-upscaler.setDownloadProgressCallback(callback); // "callback" is a function that will be called about every 0.5 seconds while a download is in progress. Currently does not provide progress. 
-upscaler.getJobStatus(jobID); // jobID is returned when upscaler.upscale() resolves. This function will return a string indicating the status of the job.
-upscaler.getJob(jobID); // jobID is returned when upscaler.upscale() resolves. this function returns an object with several pieces of information about the job. Use something like JSON.stringify();
-upscaler.getNumberOfRunningJobs(); // Returns the number of currently running jobs.
-upscaler.getNumberOfWaitingJobs(); // Returns the number of jobs waiting to run.
-upscaler.upscaleJob(...); // Takes the same params as upscaler.upscale(). This is an async function that runs the upscale immediately. You can use this function if you want to bypass the job queue altogether.
+upscaler.setDefaultModel("modelName"); 
+// Sets the model that the upscaler uses by default when one is not specified otherwise. 
+//If this is not called, the upscaler will use ultrasharp-2.0.1. 
+//Returns: nothing
+
+upscaler.getListOfModels(); 
+// Returns: array of strings that represents all the available models
+
+upscaler.setMaxJobs(4); 
+// Set the maximum number of concurrent jobs. 
+//By default, the max is 4. Set this as high as your hardware can handle.
+
+upscaler.setDownloadProgressCallback(callback); 
+// "callback" is a function that will be called about every 0.5 seconds while a download is 
+// in progress. Currently does not provide progress. 
+
+upscaler.getJobStatus(jobID); 
+// jobID is returned when upscaler.upscale() resolves. This function will return a string 
+// indicating the status of the job.
+
+upscaler.getJob(jobID); 
+// jobID is returned when upscaler.upscale() resolves. this function returns an object with 
+// several pieces of information about the job. Use something like JSON.stringify();
+
+upscaler.getNumberOfRunningJobs(); 
+// Returns the number of currently running jobs.
+
+upscaler.getNumberOfWaitingJobs(); 
+// Returns the number of jobs waiting to run.
+
+upscaler.upscaleJob(...); 
+// Takes the same params as upscaler.upscale(). This is an async function that runs the upscale 
+// immediately. You can use this function if you want to bypass the job queue altogether.
 ```
 
 Making repeated calls to upscale() without await'ing it will initiate multiple instances of _Real-ESRGAN ncnn Vulkan_. If this is done too quickly, you may overload you system. Just be cautious. 
