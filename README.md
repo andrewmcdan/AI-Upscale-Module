@@ -39,7 +39,8 @@ upscale() can also take per call options for output filetype and scale.
 let outputPath = "path_to_output";
 
 await upscaler.upscale(file, outputPath, "png", 4);
-await upscaler.upscale(file, outputPath, "png", 4, "uniscale_restore"); // Use uniscale_restore model for this run
+await upscaler.upscale(file, outputPath, "png", 4, "uniscale_restore"); 
+// Use uniscale_restore model for this run
 ```
 
 All of the other functions available in the class:
