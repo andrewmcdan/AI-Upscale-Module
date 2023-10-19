@@ -9,8 +9,6 @@ import AdmZip from 'adm-zip';
 import fetch from 'node-fetch';
 import { exec } from 'child_process';
 import LargeDownload from 'large-download';
-import { parse } from 'path';
-import { setTimeout } from 'timers/promises';
 
 const flags = {
     DOWNLOADING: "DOWNLOADING",
@@ -24,7 +22,7 @@ const modelsFileSize = 319059498;
 
 class Upscaler {
     constructor(options) {
-        // first we check to see if the assests are downloded (upscaler and models). This sets the flags.
+        // first we check to see if the assets are downloaded (upscaler and models). This sets the flags.
         // if they are not downloaded, we download them in the background
         if (options == undefined || options == null) {
             options = {};
@@ -54,6 +52,7 @@ class Upscaler {
         this.models.status = flags.UNDEFINED;
         this.upscaler.status = flags.UNDEFINED;
         this.maxJobs = options.maxJobs;
+        this.defaultModel = null;
         // console.log('Checking for assets');
         this.status = "Checking for assets";
         this.checkForAssets();
@@ -79,6 +78,47 @@ class Upscaler {
         if (this.upscaler.status == flags.READY && this.models.status == flags.READY) {
             this.status = "Upscaler ready";
         }
+    }
+
+    setDefaultModel(modelName) {
+        this.defaultModel = modelName;
+    }
+
+    getListOfModels() {
+        if(!this.models.status == flags.READY) return [];
+        let models = [];
+        let modelFolder = fs.readdirSync(this.models.path);
+        if (modelFolder.length !== 0) {
+            modelFolder.forEach((file, i) => {
+                let folder1 = null;
+                try {
+                    folder1 = fs.readdirSync(this.models.path + file);
+                } catch (e) { } // do nothing
+                // check to see if "file" is a .param or .bin file
+                if (file.endsWith('.bin')) {
+                    models.push(file.substring(0, file.lastIndexOf('.')));
+                } else if (folder1 !== undefined) {
+                    folder1.forEach((file2, i) => {
+                        let folder2 = null;
+                        try {
+                            folder2 = fs.readdirSync(this.models.path + file + '/' + file2);
+                        } catch (e) { } // do nothing
+                        // check to see if "file" is a .param or .bin file
+                        if (file2.endsWith('.bin')) {
+                            models.push(file2.substring(0, file2.lastIndexOf('.')));
+                        } else if (folder2 !== undefined) {
+                            folder2.forEach((file3, i) => {
+                                // check to see if "file" is a .param or .bin file
+                                if (file3.endsWith('.bin')) {
+                                    models.push(file3.substring(0, file3.lastIndexOf('.')));
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        return models;
     }
 
     checkForAssets() {
@@ -241,7 +281,7 @@ class Upscaler {
             let dlLink = await getReleaseDownloadLink(owner, repo, tagName, assetName);
             let latestVersion = await getLatestReleaseVersion(owner, repo);
 
-            this.downloadAndUnzip(dlLink, './zipped/realesrgan-ncnn-vulkan-' + latestVersion + '-' + assetName, 'unzipped/').then((success) => {
+            downloadAndUnzip(dlLink, './zipped/realesrgan-ncnn-vulkan-' + latestVersion + '-' + assetName, 'unzipped/').then((success) => {
                 if (success) this.upscaler.status = flags.DOWNLOADED;
                 downloadSuceess = success;
             }).catch((error) => {
@@ -255,7 +295,7 @@ class Upscaler {
 
             if (this.models.status != flags.READY && this.models.status != flags.DOWNLOADED) {
                 this.models.status = flags.DOWNLOADING;
-                this.downloadAndUnzip('https://github.com/upscayl/custom-models/archive/refs/heads/main.zip', './zipped/main.zip', 'unzipped/').then((success) => {
+                downloadAndUnzip('https://github.com/upscayl/custom-models/archive/refs/heads/main.zip', './zipped/main.zip', 'unzipped/').then((success) => {
                     if (success) {
                         //move unzipped folder to models folder
                         try {
@@ -299,11 +339,15 @@ class Upscaler {
         });
     }
 
+    setMaxJobs(maxJobs) {
+        this.maxJobs = maxJobs;
+    }
+
     setDownloadProgressCallback(callback) {
         this.downloadProgressCallback = callback;
     }
 
-    async upscale(inputFile, outputPath = null, format = "", scale = -1) {
+    async upscale(inputFile, outputPath = null, format = "", scale = -1, modelName = "ultrasharp-2.0.1") {
         return new Promise(async (resolve, reject) => {
             let job = {};
             job.inputFile = inputFile;
@@ -311,6 +355,8 @@ class Upscaler {
             job.format = format;
             job.scale = scale;
             job.status = "waiting";
+            if (this.defaultModel === null) job.modelName = modelName;
+            else if (typeof this.modelName == "string") job.modelName = this.defaultModel;
             job.id = this.upscaleJobID++;
             this.upscaleJobs.push(job);
             if (this.jobRunner == null || this.jobRunner == undefined) this.jobRunner = this.processJobs();
@@ -334,6 +380,19 @@ class Upscaler {
         });
     }
 
+    getJob(jobID) {
+        let job = this.upscaleJobs.find(job => job.id === jobID);
+        if (job == undefined) {
+            job = this.finishedJobs.find(job => job.id === jobID);
+            if (job == undefined)
+                return null;
+            else
+                return job;
+        } else {
+            return job;
+        }
+    }
+
     getNumberOfRunningJobs() {
         return this.upscaleJobsRunningCount;
     }
@@ -349,7 +408,7 @@ class Upscaler {
                 this.upscaleJobsRunningCount++;
                 let job = this.upscaleJobs.shift();
                 job.status = "processing";
-                waiter.push(this.upscaleJob(job.inputFile, job.outputPath, job.format, job.scale).then((success) => {
+                waiter.push(this.upscaleJob(job.inputFile, job.outputPath, job.format, job.scale, job.modelName).then((success) => {
                     // console.log("Upscale completed/////////////////////////////////////////////////////////////////////////////////////////////////////");
                     if (success) {
                         job.status = "complete";
@@ -376,7 +435,7 @@ class Upscaler {
         });
     }
 
-    async upscaleJob(inputFile, outputPath, format, scale) {
+    async upscaleJob(inputFile, outputPath, format, scale, modelName) {
         // console.log("Upscaling: ", inputFile);
         if (outputPath == null) outputPath = this.options.defaultOutputPath;
         if (format == "") format = this.options.defaultFormat;
@@ -400,7 +459,7 @@ class Upscaler {
 
             let outputFile = inputFile.substring(inputFile.lastIndexOf('/') + 1, inputFile.lastIndexOf('.')) + '-upscaled.' + format;
             outputPath = outputPath.substring(0, outputPath.lastIndexOf('/')); // outputPath without file name
-            //await this.waitSeconds(2);
+            //await waitSeconds(2);
             try {
                 if (!fs.existsSync(outputPath)) {
                     // create output path
@@ -457,93 +516,93 @@ class Upscaler {
             this.execJobs.push({scalingExec, scalingTimeout, id: this.execJobsCount++});
         });
     }
-
-    downloadAndUnzip = (url, zipPath, extractPath) => {
-        return new Promise(async (resolve, reject) => {
-            let waitingForFilename = true;
-            let modelsFile = false;
-            fetch(url).then((response) => {
-                const contentDisposition = response.headers.get("content-disposition");
-                // console.log("contentDisposition: ", contentDisposition);
-                if (contentDisposition.indexOf("custom-models-main.zip") != -1) {
-                    modelsFile = true;
-                }
-                if (contentDisposition) {
-                    const match = /filename=([^;]+)/.exec(contentDisposition);
-                    if (match) {
-                        const filename = match[1];
-                        // console.log("File name:", filename);
-                    } else {
-                        // console.log("No filename found in Content-Disposition header");
-                    }
-                } else {
-                    // console.log("Content-Disposition header not found in the response");
-                }
-            }).catch((error) => {
-                console.error("Error:", error);
-            }).finally(() => { waitingForFilename = false; });
-
-            while (waitingForFilename) { await this.waitSeconds(1); }
-
-            try {
-                let downloading = true;
-                let downloadTotal = modelsFile ? modelsFileSize : 0;
-
-                const download = new LargeDownload({
-                    link: url,
-                    destination: zipPath,
-                    timeout: 300000,
-                    retries: 3,
-                    onRetry: (error) => {
-                        console.log("Download error. Retrying: ", { error }, { url }, { zipPath }, { extractPath });
-                    },
-                    onData: (downloaded, total) => {
-                        // console.log( {downloaded}, {total});
-                        downloadTotal = modelsFile ? modelsFileSize : parseInt(total);
-                        if (!isNaN(downloadTotal)) {
-                            // convert to MB and truncate to 2 decimal places
-                            downloadTotal = (downloadTotal / 1000000).toFixed(2);
-                            downloaded = (downloaded / 1000000).toFixed(2);
-                            console.log("Download progress: ", (downloaded / downloadTotal).toFixed(2) * 100 + "%");
-                        }
-                    },
-                    minSizeToShowProgress: Infinity
-                });
-
-                download.load().then(() => {
-                    downloading = false;
-                    download.onRetry = null;
-                }).catch(() => {
-                    downloading = false;
-                    download.onRetry = null;
-                    reject(false);
-                });
-
-                while (downloading) {
-                    await this.waitSeconds(0.5);
-                    if (this.downloadProgressCallback !== null) this.downloadProgressCallback();
-                }
-
-                const zip = new AdmZip(zipPath);
-                zip.extractAllTo(extractPath, true);
-                resolve(true);
-            } catch (error) {
-                console.error("Error: ", { error });
-                reject(false);
-            }
-        });
-    };
-
-    async waitSeconds(count) {
-        // this holds the promise returned by the confirm function
-        return await new Promise((resolve) => {
-            setTimeout(() => {
-                // if the user hasn't pressed enter to cancel, cancel the confirmation promise and resolve the wait promise with false
-                resolve();
-            }, count * 1000);
-        });
-    };
 }
+
+const downloadAndUnzip = (url, zipPath, extractPath) => {
+    return new Promise(async (resolve, reject) => {
+        let waitingForFilename = true;
+        let modelsFile = false;
+        fetch(url).then((response) => {
+            const contentDisposition = response.headers.get("content-disposition");
+            // console.log("contentDisposition: ", contentDisposition);
+            if (contentDisposition.indexOf("custom-models-main.zip") != -1) {
+                modelsFile = true;
+            }
+            if (contentDisposition) {
+                const match = /filename=([^;]+)/.exec(contentDisposition);
+                if (match) {
+                    const filename = match[1];
+                    // console.log("File name:", filename);
+                } else {
+                    // console.log("No filename found in Content-Disposition header");
+                }
+            } else {
+                // console.log("Content-Disposition header not found in the response");
+            }
+        }).catch((error) => {
+            console.error("Error:", error);
+        }).finally(() => { waitingForFilename = false; });
+
+        while (waitingForFilename) { await waitSeconds(1); }
+
+        try {
+            let downloading = true;
+            let downloadTotal = modelsFile ? modelsFileSize : 0;
+
+            const download = new LargeDownload({
+                link: url,
+                destination: zipPath,
+                timeout: 300000,
+                retries: 3,
+                onRetry: (error) => {
+                    console.log("Download error. Retrying: ", { error }, { url }, { zipPath }, { extractPath });
+                },
+                onData: (downloaded, total) => {
+                    // console.log( {downloaded}, {total});
+                    downloadTotal = modelsFile ? modelsFileSize : parseInt(total);
+                    if (!isNaN(downloadTotal)) {
+                        // convert to MB and truncate to 2 decimal places
+                        downloadTotal = (downloadTotal / 1000000).toFixed(2);
+                        downloaded = (downloaded / 1000000).toFixed(2);
+                        console.log("Download progress: ", (downloaded / downloadTotal).toFixed(2) * 100 + "%");
+                    }
+                },
+                minSizeToShowProgress: Infinity
+            });
+
+            download.load().then(() => {
+                downloading = false;
+                download.onRetry = null;
+            }).catch(() => {
+                downloading = false;
+                download.onRetry = null;
+                reject(false);
+            });
+
+            while (downloading) {
+                await waitSeconds(0.5);
+                if (this.downloadProgressCallback !== null) this.downloadProgressCallback();
+            }
+
+            const zip = new AdmZip(zipPath);
+            zip.extractAllTo(extractPath, true);
+            resolve(true);
+        } catch (error) {
+            console.error("Error: ", { error });
+            reject(false);
+        }
+    });
+};
+
+async function waitSeconds(count) {
+    // this holds the promise returned by the confirm function
+    return await new Promise((resolve) => {
+        setTimeout(() => {
+            // if the user hasn't pressed enter to cancel, cancel the confirmation promise and resolve the wait promise with false
+            resolve();
+        }, count * 1000);
+    });
+};
 
 async function getLatestReleaseVersion(owner, repo) {
     try {
