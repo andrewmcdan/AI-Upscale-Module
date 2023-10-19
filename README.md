@@ -47,15 +47,15 @@ All of the other functions available in the class:
 ```javascript
 upscaler.setDefaultModel("modelName"); 
 // Sets the model that the upscaler uses by default when one is not specified otherwise. 
-//If this is not called, the upscaler will use ultrasharp-2.0.1. 
-//Returns: nothing
+// If this is not called, the upscaler will use ultrasharp-2.0.1. 
+// Returns: nothing
 
 upscaler.getListOfModels(); 
 // Returns: array of strings that represents all the available models
 
 upscaler.setMaxJobs(4); 
 // Set the maximum number of concurrent jobs. 
-//By default, the max is 4. Set this as high as your hardware can handle.
+// By default, the max is 4. Set this as high as your hardware can handle.
 
 upscaler.setDownloadProgressCallback(callback); 
 // "callback" is a function that will be called about every 0.5 seconds while a download is 
