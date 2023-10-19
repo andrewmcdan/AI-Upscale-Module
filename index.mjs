@@ -43,6 +43,9 @@ class Upscaler {
         if (options.downloadProgressCallback === undefined || options.downloadProgressCallback === null) {
             options.downloadProgressCallback = null;
         }
+        if(options.maxJobs === undefined || options.maxJobs === null) {
+            options.maxJobs = 4;
+        }
 
         this.options = options;
         this.downloadProgressCallback = options.downloadProgressCallback;
@@ -50,6 +53,7 @@ class Upscaler {
         this.models = {};
         this.models.status = flags.UNDEFINED;
         this.upscaler.status = flags.UNDEFINED;
+        this.maxJobs = options.maxJobs;
         // console.log('Checking for assets');
         this.status = "Checking for assets";
         this.checkForAssets();
@@ -67,6 +71,11 @@ class Upscaler {
         }
         this.upscaleJobs = [];
         this.upscaleJobsRunningCount = 0;
+        this.upscaleJobID = 0;
+        this.finishedJobs = [];
+        this.jobRunner = null;
+        this.execJobs = [];
+        this.execJobsCount = 0;
         if (this.upscaler.status == flags.READY && this.models.status == flags.READY) {
             this.status = "Upscaler ready";
         }
@@ -302,58 +311,96 @@ class Upscaler {
             job.format = format;
             job.scale = scale;
             job.status = "waiting";
+            job.id = this.upscaleJobID++;
             this.upscaleJobs.push(job);
-            resolve(this.processJobs());
+            if (this.jobRunner == null || this.jobRunner == undefined) this.jobRunner = this.processJobs();
+            resolve(job.id);
         });
     }
 
-    async processJobs() {
+    async getJobStatus(jobID) {
         return new Promise(async (resolve, reject) => {
-            while (this.upscaleJobs.length > 0 && this.upscaleJobsRunningCount < 4) {
+            let job = this.upscaleJobs.find(job => job.id === jobID);
+
+            if (job == undefined) {
+                job = this.finishedJobs.find(job => job.id === jobID);
+                if (job == undefined)
+                    resolve("not found");
+                else
+                    resolve(job.status);
+            } else {
+                resolve(job.status);
+            }
+        });
+    }
+
+    getNumberOfRunningJobs() {
+        return this.upscaleJobsRunningCount;
+    }
+
+    getNumberOfWaitingJobs() {
+        return this.upscaleJobs.length;
+    }
+
+    processJobs() {
+        return new Promise(async (resolve, reject) => {
+            let waiter = [];
+            while (this.upscaleJobs.length > 0 && this.upscaleJobsRunningCount < this.maxJobs) {
                 this.upscaleJobsRunningCount++;
                 let job = this.upscaleJobs.shift();
                 job.status = "processing";
-                this.upscaleJob(job.inputFile, job.outputPath, job.format, job.scale).then((success) => {
+                waiter.push(this.upscaleJob(job.inputFile, job.outputPath, job.format, job.scale).then((success) => {
+                    // console.log("Upscale completed/////////////////////////////////////////////////////////////////////////////////////////////////////");
                     if (success) {
                         job.status = "complete";
                     } else {
                         job.status = "failed";
                     }
                 }).catch((error) => {
+                    // console.log("Upscale failed xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
                     job.status = "failed";
+                    console.error(error);
                 }).finally(() => {
                     this.upscaleJobsRunningCount--;
-                    this.processJobs();
-                });
+                    this.finishedJobs.push(job);
+                }));
             }
-            resolve(true);
+            Promise.all(waiter).then((obj) => {
+                // console.log("All jobs completed");
+                // console.log({obj});
+                if(this.upscaleJobs.length > 0) this.jobRunner = this.processJobs();
+                else this.jobRunner = null;
+                resolve();
+            });
+            
         });
     }
 
     async upscaleJob(inputFile, outputPath, format, scale) {
+        // console.log("Upscaling: ", inputFile);
         if (outputPath == null) outputPath = this.options.defaultOutputPath;
         if (format == "") format = this.options.defaultFormat;
         if (scale == -1) scale = this.options.defaultScale;
         return new Promise(async (resolve, reject) => {
             if (this.upscaler.status != flags.READY || this.models.status != flags.READY) {
-                console.error('Upscaler is not ready');
+                console.log('Upscaler is not ready');
                 resolve(false);
             }
             // check to see if inputFile exists
             if (!fs.existsSync(inputFile)) {
-                console.error('File does not exist');
+                console.log('File does not exist');
                 resolve(false);
             }
 
             // check to see if inputFile is a valid image
             if (!inputFile.endsWith('.png')) {
-                console.error('File is not a valid image');
+                console.log('File is not a valid image');
                 resolve(false);
             }
 
             let outputFile = inputFile.substring(inputFile.lastIndexOf('/') + 1, inputFile.lastIndexOf('.')) + '-upscaled.' + format;
             outputPath = outputPath.substring(0, outputPath.lastIndexOf('/')); // outputPath without file name
-            await this.waitSeconds(2);
+            //await this.waitSeconds(2);
             try {
                 if (!fs.existsSync(outputPath)) {
                     // create output path
@@ -365,15 +412,15 @@ class Upscaler {
             }
 
             if (format !== "jpg" && format !== "png") {
-                console.error('Format is not supported');
+                console.log('Format is not supported');
                 resolve(false);
             }
 
             if (scale !== 2 && scale !== 3 && scale !== 4) {
-                console.error('Scale is not supported');
+                console.log('Scale is not supported');
                 resolve(false);
             }
-
+            // console.log("About to upscale");
             // run upscaler
             // resolve absolute paths
             this.upscaler.path = fs.realpathSync(this.upscaler.path);
@@ -387,32 +434,27 @@ class Upscaler {
             execString += " -s " + scale;
             execString += " -m " + "\"" + this.models.path + "\"";
             execString += " -n ultrasharp-2.0.1 ";
-            let scaling = exec(execString, (err, stdout, stderr) => { });
-            scaling.stderr.on('data', (data) => {
-                // TODO: call progress callback
+            // console.log("calling upscaler with command: ", execString);
+            let scalingExec = exec(execString, (err, stdout, stderr) => {
+                if (err) {
+                    // console.log({err});
+                }
+                // console.log({stdout});
+                // console.log({stderr});
+            }).on('exit', (code) => {
+                // console.log("close code: " + code);
+                if(code == 0) resolve(true);
+                else resolve(false);
+            }).on('close', (code) => {
+                // console.log("close code: " + code);
+                if(code == 0) resolve(true);
+                else resolve(false);
             });
-            while (scaling.exitCode === null) {
-                await this.waitSeconds(5);
-            }
-            if (scaling.exitCode == 0) {
-                try{
-                    scaling.kill();
-                }catch(e){
-                }
-                resolve(true);
-            } else {
-                try{
-                    scaling.kill();
-                }catch(e){
-                }
-                resolve(false);
-            }
-            setTimeout(() => {
-                try{
-                    scaling.kill();
-                }catch(e){
-                }
-            }, 1000 * 60 * 15); // kill process after 15 minutes
+            let scalingTimeout = setTimeout(() => {
+                scalingExec.kill('SIGINT');
+                this.execJobs.splice(this.execJobs.findIndex(job => job.id === this.execJobsCount), 1); // TODO: test this
+            }, 1000 * 60 * 10);
+            this.execJobs.push({scalingExec, scalingTimeout, id: this.execJobsCount++});
         });
     }
 

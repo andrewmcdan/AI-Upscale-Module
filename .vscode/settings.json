@@ -1,3 +1,6 @@
 {
-    "window.title": "${rootName}${separator}${activeEditorShort}"
+    "window.title": "${rootName}${separator}${activeEditorShort}",
+    "cSpell.words": [
+        "Upscaler"
+    ]
 }
