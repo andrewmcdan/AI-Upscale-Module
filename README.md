@@ -51,6 +51,15 @@ Once it gets everything downloaded and unzipped, it will be ready to upscale ima
 
 The default model that it uses was selected because it looks quite good when working with images from Midjourney. It is quite possible to modify this code so that it uses a different model. There are several in the models folder that gets downloaded. 
 
+## Version History
+### V1.1.0
+- Rewrote upscale(). Upscale jobs now queue and a maximum number of concurrent jobs can be set so that you don't overload your system. There's also some related functions for getting job status.
+- Added capability to get list of available models and to set a default. Each job can also be run with a specific model.
+- Moved some functions out of the class.
+- Probably added some bugs. Whoops.
+### V1.0.0
+- Initial release. 
+
 ## Contributing
 If you want to contribute, feel free to submit a PR. I'm not a node.js developer, so I'm sure there are things that could be done better. Also, please feel free to submit issues if you find bugs or have suggestions. Mac and Linux support would be great. These should be easy to add, but I don't have a Mac and I don't have a Linux machine with a Vulkan capable GPU. 
 

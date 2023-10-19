@@ -2,7 +2,6 @@
 // 1. Add support for mac and linux
 //   - d̶o̶w̶n̶l̶o̶a̶d̶ t̶h̶e̶ c̶o̶r̶r̶e̶c̶t̶ z̶i̶p̶ f̶i̶l̶e̶  (done, I think)
 //   - figure out how to run the upscaler
-// 2. Figure out a way to get the download progress
 
 import fs from 'fs';
 import AdmZip from 'adm-zip';
@@ -52,7 +51,7 @@ class Upscaler {
         this.models.status = flags.UNDEFINED;
         this.upscaler.status = flags.UNDEFINED;
         this.maxJobs = options.maxJobs;
-        this.defaultModel = null;
+        this.defaultModel = "ultrasharp-2.0.1";
         // console.log('Checking for assets');
         this.status = "Checking for assets";
         this.checkForAssets();
@@ -97,7 +96,7 @@ class Upscaler {
                 // check to see if "file" is a .param or .bin file
                 if (file.endsWith('.bin')) {
                     models.push(file.substring(0, file.lastIndexOf('.')));
-                } else if (folder1 !== undefined) {
+                } else if (folder1 !== undefined && folder1 !== null) { // go one more folder deep
                     folder1.forEach((file2, i) => {
                         let folder2 = null;
                         try {
@@ -106,13 +105,6 @@ class Upscaler {
                         // check to see if "file" is a .param or .bin file
                         if (file2.endsWith('.bin')) {
                             models.push(file2.substring(0, file2.lastIndexOf('.')));
-                        } else if (folder2 !== undefined) {
-                            folder2.forEach((file3, i) => {
-                                // check to see if "file" is a .param or .bin file
-                                if (file3.endsWith('.bin')) {
-                                    models.push(file3.substring(0, file3.lastIndexOf('.')));
-                                }
-                            });
                         }
                     });
                 }
@@ -347,7 +339,7 @@ class Upscaler {
         this.downloadProgressCallback = callback;
     }
 
-    async upscale(inputFile, outputPath = null, format = "", scale = -1, modelName = "ultrasharp-2.0.1") {
+    async upscale(inputFile, outputPath = null, format = "", scale = -1, modelName = null) {
         return new Promise(async (resolve, reject) => {
             let job = {};
             job.inputFile = inputFile;
@@ -355,8 +347,8 @@ class Upscaler {
             job.format = format;
             job.scale = scale;
             job.status = "waiting";
-            if (this.defaultModel === null) job.modelName = modelName;
-            else if (typeof this.modelName == "string") job.modelName = this.defaultModel;
+            if (modelName !== null) job.modelName = modelName;
+            else job.modelName = this.defaultModel;
             job.id = this.upscaleJobID++;
             this.upscaleJobs.push(job);
             if (this.jobRunner == null || this.jobRunner == undefined) this.jobRunner = this.processJobs();
@@ -492,7 +484,7 @@ class Upscaler {
             execString += " -f " + format;
             execString += " -s " + scale;
             execString += " -m " + "\"" + this.models.path + "\"";
-            execString += " -n ultrasharp-2.0.1 ";
+            execString += " -n " + modelName + " ";
             // console.log("calling upscaler with command: ", execString);
             let scalingExec = exec(execString, (err, stdout, stderr) => {
                 if (err) {
