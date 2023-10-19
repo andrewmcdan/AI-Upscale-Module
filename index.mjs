@@ -19,6 +19,9 @@ const flags = {
 
 const modelsFileSize = 319059498;
 
+let upscaleJobID = 0;
+let execJobsCount = 0;
+
 class Upscaler {
     constructor(options) {
         // first we check to see if the assets are downloaded (upscaler and models). This sets the flags.
@@ -43,6 +46,9 @@ class Upscaler {
         if(options.maxJobs === undefined || options.maxJobs === null) {
             options.maxJobs = 4;
         }
+        if(options.defaultModel === undefined || options.defaultModel === null) {
+            options.defaultModel = "ultrasharp-2.0.1";
+        }
 
         this.options = options;
         this.downloadProgressCallback = options.downloadProgressCallback;
@@ -51,7 +57,7 @@ class Upscaler {
         this.models.status = flags.UNDEFINED;
         this.upscaler.status = flags.UNDEFINED;
         this.maxJobs = options.maxJobs;
-        this.defaultModel = "ultrasharp-2.0.1";
+        this.defaultModel = options.defaultModel;
         // console.log('Checking for assets');
         this.status = "Checking for assets";
         this.checkForAssets();
@@ -69,13 +75,11 @@ class Upscaler {
         }
         this.upscaleJobs = [];
         this.upscaleJobsRunningCount = 0;
-        this.upscaleJobID = 0;
         this.finishedJobs = [];
         this.jobRunner = null;
         this.execJobs = [];
-        this.execJobsCount = 0;
         if (this.upscaler.status == flags.READY && this.models.status == flags.READY) {
-            this.status = "Upscaler ready";
+            this.status = flags.READY;
         }
     }
 
@@ -349,7 +353,7 @@ class Upscaler {
             job.status = "waiting";
             if (modelName !== null) job.modelName = modelName;
             else job.modelName = this.defaultModel;
-            job.id = this.upscaleJobID++;
+            job.id = upscaleJobID++;
             this.upscaleJobs.push(job);
             if (this.jobRunner == null || this.jobRunner == undefined) this.jobRunner = this.processJobs();
             resolve(job.id);
@@ -503,9 +507,9 @@ class Upscaler {
             });
             let scalingTimeout = setTimeout(() => {
                 scalingExec.kill('SIGINT');
-                this.execJobs.splice(this.execJobs.findIndex(job => job.id === this.execJobsCount), 1); // TODO: test this
+                this.execJobs.splice(this.execJobs.findIndex(job => job.id === execJobsCount), 1); // TODO: test this
             }, 1000 * 60 * 10);
-            this.execJobs.push({scalingExec, scalingTimeout, id: this.execJobsCount++});
+            this.execJobs.push({scalingExec, scalingTimeout, id: execJobsCount++});
         });
     }
 }
