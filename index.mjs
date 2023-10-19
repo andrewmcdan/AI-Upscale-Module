@@ -10,6 +10,7 @@ import fetch from 'node-fetch';
 import { exec } from 'child_process';
 import LargeDownload from 'large-download';
 import { parse } from 'path';
+import { setTimeout } from 'timers/promises';
 
 const flags = {
     DOWNLOADING: "DOWNLOADING",
@@ -64,6 +65,8 @@ class Upscaler {
                 this.status = "Error downloading assets";
             });
         }
+        this.upscaleJobs = [];
+        this.upscaleJobsRunningCount = 0;
         if (this.upscaler.status == flags.READY && this.models.status == flags.READY) {
             this.status = "Upscaler ready";
         }
@@ -292,6 +295,42 @@ class Upscaler {
     }
 
     async upscale(inputFile, outputPath = null, format = "", scale = -1) {
+        return new Promise(async (resolve, reject) => {
+            let job = {};
+            job.inputFile = inputFile;
+            job.outputPath = outputPath;
+            job.format = format;
+            job.scale = scale;
+            job.status = "waiting";
+            this.upscaleJobs.push(job);
+            resolve(this.processJobs());
+        });
+    }
+
+    async processJobs() {
+        return new Promise(async (resolve, reject) => {
+            while (this.upscaleJobs.length > 0 && this.upscaleJobsRunningCount < 4) {
+                this.upscaleJobsRunningCount++;
+                let job = this.upscaleJobs.shift();
+                job.status = "processing";
+                this.upscaleJob(job.inputFile, job.outputPath, job.format, job.scale).then((success) => {
+                    if (success) {
+                        job.status = "complete";
+                    } else {
+                        job.status = "failed";
+                    }
+                }).catch((error) => {
+                    job.status = "failed";
+                }).finally(() => {
+                    this.upscaleJobsRunningCount--;
+                    this.processJobs();
+                });
+            }
+            resolve(true);
+        });
+    }
+
+    async upscaleJob(inputFile, outputPath, format, scale) {
         if (outputPath == null) outputPath = this.options.defaultOutputPath;
         if (format == "") format = this.options.defaultFormat;
         if (scale == -1) scale = this.options.defaultScale;
@@ -356,10 +395,24 @@ class Upscaler {
                 await this.waitSeconds(5);
             }
             if (scaling.exitCode == 0) {
+                try{
+                    scaling.kill();
+                }catch(e){
+                }
                 resolve(true);
             } else {
+                try{
+                    scaling.kill();
+                }catch(e){
+                }
                 resolve(false);
             }
+            setTimeout(() => {
+                try{
+                    scaling.kill();
+                }catch(e){
+                }
+            }, 1000 * 60 * 15); // kill process after 15 minutes
         });
     }
 
@@ -370,7 +423,7 @@ class Upscaler {
             fetch(url).then((response) => {
                 const contentDisposition = response.headers.get("content-disposition");
                 // console.log("contentDisposition: ", contentDisposition);
-                if(contentDisposition.indexOf("custom-models-main.zip") != -1){
+                if (contentDisposition.indexOf("custom-models-main.zip") != -1) {
                     modelsFile = true;
                 }
                 if (contentDisposition) {
@@ -392,7 +445,7 @@ class Upscaler {
 
             try {
                 let downloading = true;
-                let downloadTotal = modelsFile?modelsFileSize:0;
+                let downloadTotal = modelsFile ? modelsFileSize : 0;
 
                 const download = new LargeDownload({
                     link: url,
@@ -404,8 +457,8 @@ class Upscaler {
                     },
                     onData: (downloaded, total) => {
                         // console.log( {downloaded}, {total});
-                        downloadTotal = modelsFile?modelsFileSize:parseInt(total);
-                        if(!isNaN(downloadTotal)) {
+                        downloadTotal = modelsFile ? modelsFileSize : parseInt(total);
+                        if (!isNaN(downloadTotal)) {
                             // convert to MB and truncate to 2 decimal places
                             downloadTotal = (downloadTotal / 1000000).toFixed(2);
                             downloaded = (downloaded / 1000000).toFixed(2);
