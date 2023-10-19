@@ -11,7 +11,7 @@
     "url": "git+https://github.com/andrewmcdan/ai-upscale-module.git"
   },
   "author": "",
-  "license": "GPL-3.0-or-later",
+  "license": "GPL",
   "keywords": [
     "ai",
     "upscale",
@@ -34,6 +34,6 @@
     "adm-zip": "^0.5.10",
     "fs": "^0.0.1-security",
     "node-fetch": "^2.6.1",
-    "large-download": "git+https://github.com/andrewmcdan/large-download.git#master"
+    "large-download": "file:../large-download"
   }
 }
