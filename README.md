@@ -1,5 +1,8 @@
 # AI-Upscale-Module
-This is a node.js module that uses [Real-ESRGAN ncnn Vulkan](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan) to upscale images. See the Real-ESRGAN page for details on system requirements to run the up-scaler. Notably, it only works with PNG files on Vulkan capable GPUs. Currently, the module only supports Windows, but it should be possible to get it working on Linux and Mac. I just haven't done it yet. Feel free to submit a PR if you get it working.
+This is a wrapper for [Upscayl's Real-ESRGAN-ncnn-vulkan binary](https://github.com/upscayl/upscayl-ncnn/) to upscale images. See the [Real-ESRGAN](https://github.com/xinntao/Real-ESRGAN) page for details on system requirements to run the up-scaler. Notably, it only works with PNG files on Vulkan capable GPUs. Currently, this wrapper only supports Windows, but it should be possible to get it working on Linux and Mac. I just haven't done it yet. Feel free to submit a PR if you get it working.
+
+### Just a note on dependencies
+This package depends on my fork of large-download. If I ever get around to submitting a PR for my changes, maybe I can change the dependency to normal package.
 
 ## Usage
 ```javascript
@@ -80,19 +83,21 @@ upscaler.upscaleJob(...);
 // immediately. You can use this function if you want to bypass the job queue altogether.
 ```
 
-Making repeated calls to upscale() without await'ing it will initiate multiple instances of _Real-ESRGAN ncnn Vulkan_. If this is done too quickly, you may overload you system. Just be cautious. 
+Making repeated calls to upscaleJob() without await'ing it will initiate multiple instances of _Real-ESRGAN ncnn Vulkan_. If this is done too quickly, you may overload you system. Just be cautious. 
 
 
 ## How it works
-As mentioned above, this module depends on [Real-ESRGAN ncnn Vulkan](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan) along with (at least) one of the models available from [Upscayl's](https://github.com/upscayl/upscayl) [custom models](https://github.com/upscayl/custom-models/). You could download all the resources yourself, but it's easier to let the module do the work for you. 
+As mentioned above, this module depends on [upscayl/upscayl-ncnn](https://github.com/upscayl/upscayl-ncnn/releases/tag/10.17.2023) along with (at least) one of the models available from [Upscayl's](https://github.com/upscayl/upscayl) [custom models](https://github.com/upscayl/custom-models/). You could download all the resources yourself, but it's easier to let the module do the work for you. 
 
-The first time you run the module (like the first time on in that particular working directory), it will check for resources and download whats needed. The models are about 300MB, so that could take a minute or two on slower connections, and unfortunately there's no progress indicator. So, you'll just have to wait for it to finish.
+The first time you run the module (like the first time in that particular working directory), it will check for resources and download whatever is needed. The models are about 300MB, so that could take a minute or two on slower connections. There's a hardcoded file size for that download so it'll show download progress. This means if they ever change the size of the file, and I don't get around to updating it, the progress will be off.
 
 Once it gets everything downloaded and unzipped, it will be ready to upscale images for. 
 
-The default model that it uses was selected because it looks quite good when working with images from Midjourney. It is quite possible to modify this code so that it uses a different model. There are several in the models folder that gets downloaded. 
+The default model that it uses was selected because it looks quite good when working with images from Midjourney. There are several in the models folder that gets downloaded, so have a look and experiment if you feel so inclined.
 
 ## Version History
+### V1.2.0
+- Changed the Real-ESRGAN-ncnn-vulkan binary source from github.com/xinntao/Real-ESRGAN-ncnn-vulkan to [Upscayl's build of the same project](https://github.com/upscayl/upscayl-ncnn/releases/tag/10.17.2023) as they are actively developing their branch. 
 ### V1.1.0
 - Rewrote upscale(). Upscale jobs now queue and a maximum number of concurrent jobs can be set so that you don't overload your system. There's also some related functions for getting job status.
 - Added capability to get list of available models and to set a default. Each job can also be run with a specific model.
@@ -105,7 +110,7 @@ The default model that it uses was selected because it looks quite good when wor
 If you want to contribute, feel free to submit a PR. I'm not a node.js developer, so I'm sure there are things that could be done better. Also, please feel free to submit issues if you find bugs or have suggestions. Mac and Linux support would be great. These should be easy to add, but I don't have a Mac and I don't have a Linux machine with a Vulkan capable GPU. 
 
 ## Disclaimer
-I make no warrantees or guarantees about this software. I can't be sure that this implementation doesn't violate the terms of use or license for Real-ESRGAN or Upscayl. Use at your own risk.
+I make no warrantees or guarantees about this software. I can't be sure that this implementation doesn't violate the terms of use or license for Upscayl. Use at your own risk.
 
 ## License
 GPL, I guess. Just don't steal it and do something stupid with it. If you use my code, link back to me somehow, please.
