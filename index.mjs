@@ -21,6 +21,7 @@ const modelsFileSize = 319059498;
 
 let upscaleJobID = 0;
 let execJobsCount = 0;
+let downloadProgressCallback = null;
 
 class Upscaler {
     constructor(options) {
@@ -51,7 +52,7 @@ class Upscaler {
         }
 
         this.options = options;
-        this.downloadProgressCallback = options.downloadProgressCallback;
+        downloadProgressCallback = options.downloadProgressCallback;
         this.upscaler = {};
         this.models = {};
         this.models.status = flags.UNDEFINED;
@@ -129,12 +130,10 @@ class Upscaler {
             latestVersion.folderName = "";
             if (unzippedFolder.length !== 0) {
                 unzippedFolder.forEach((file, i) => {
-                    let versionNo = file.substring(file.indexOf('kan-v') + 5, file.lastIndexOf("-"));
+                    let versionNo = file.substring(file.indexOf('vulkan-') + 6, file.lastIndexOf("-"));
                     let versionNoArray = versionNo.split('.');
                     let versionNoInt = 0;
-                    versionNoArray.forEach((version, index) => {
-                        versionNoInt += parseInt(version) * Math.pow(10, index * 3);
-                    });
+                    versionNoInt = parseInt(versionNoArray[2] * Math.pow(10, 6) + versionNoArray[0] * Math.pow(10, 3) + versionNoArray[1] * Math.pow(10, 0));
                     if (versionNoInt > latestVersion.versionNo) {
                         latestVersion.versionNo = versionNoInt;
                         latestVersion.folderName = file;
@@ -163,7 +162,7 @@ class Upscaler {
         }
 
         if (this.upscaler.status == flags.NOT_DOWNLOADED) {
-            console.log('Upscaler is not installed. Will attempt to aquire in background.');
+            console.log('Upscaler is not installed. Will attempt to acquire in background.');
         }
 
         // find upscale model
@@ -210,8 +209,6 @@ class Upscaler {
                 });
             }
         }
-        // console.log({ modelsFound });
-        // console.log({ modelsFolder });
 
         if (modelsFound) {
             this.models.status = flags.READY;
@@ -219,7 +216,7 @@ class Upscaler {
         } else {
             this.models.status = flags.NOT_DOWNLOADED;
             this.models.path = "";
-            console.log('Models not found. Will attempt to aquire in background.');
+            console.log('Models not found. Will attempt to acquire in background.');
         }
     }
 
@@ -240,9 +237,9 @@ class Upscaler {
 
     async downloadAssets() {
         return new Promise(async (resolve, reject) => {
-            const owner = 'xinntao';
-            const repo = 'Real-ESRGAN-ncnn-vulkan';
-            let downloadSuceess = false;
+            const owner = 'upscayl';
+            const repo = 'upscayl-ncnn';
+            let downloadSuccess = false;
 
             // create some folders
             try {
@@ -275,11 +272,10 @@ class Upscaler {
 
             let tagName = await getLatestReleaseVersion(owner, repo);
             let dlLink = await getReleaseDownloadLink(owner, repo, tagName, assetName);
-            let latestVersion = await getLatestReleaseVersion(owner, repo);
 
-            downloadAndUnzip(dlLink, './zipped/realesrgan-ncnn-vulkan-' + latestVersion + '-' + assetName, 'unzipped/').then((success) => {
+            downloadAndUnzip(dlLink, './zipped/realesrgan-ncnn-vulkan-' + tagName + '-' + assetName, 'unzipped/').then((success) => {
                 if (success) this.upscaler.status = flags.DOWNLOADED;
-                downloadSuceess = success;
+                downloadSuccess = success;
             }).catch((error) => {
                 resolve(false);
             }).finally(() => {
@@ -316,7 +312,7 @@ class Upscaler {
                             });
                             // remove extraneous files
                             fs.rmSync('./unzipped/custom-models-main/', { recursive: true });
-                            downloadSuceess = true;
+                            downloadSuccess = true;
                             this.models.status = flags.DOWNLOADED;
                         } catch (e) {
                             resolve(false);
@@ -340,7 +336,7 @@ class Upscaler {
     }
 
     setDownloadProgressCallback(callback) {
-        this.downloadProgressCallback = callback;
+        downloadProgressCallback = callback;
     }
 
     async upscale(inputFile, outputPath = null, format = "", scale = -1, modelName = null) {
@@ -577,9 +573,9 @@ const downloadAndUnzip = (url, zipPath, extractPath) => {
 
             while (downloading) {
                 await waitSeconds(0.5);
-                if (this.downloadProgressCallback !== null) this.downloadProgressCallback();
+                if (downloadProgressCallback !== undefined)if( downloadProgressCallback !== null) downloadProgressCallback();
             }
-
+            console.log("Download complete");
             const zip = new AdmZip(zipPath);
             zip.extractAllTo(extractPath, true);
             resolve(true);
