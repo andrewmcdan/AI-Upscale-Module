@@ -47,8 +47,8 @@ class Upscaler {
             options.maxJobs = 4;
         }
         if (options.defaultModel === undefined || options.defaultModel === null) {
-            options.defaultModel = "4x_RealisticRescaler_100000_G";
-            // options.defaultModel = "ultrasharp-2.0.1"; 
+            // options.defaultModel = "4x_RealisticRescaler_100000_G";
+            options.defaultModel = "ultrasharp-2.0.1";
         }
 
         this.options = options;
