@@ -43,10 +43,10 @@ class Upscaler {
         if (options.downloadProgressCallback === undefined || options.downloadProgressCallback === null) {
             options.downloadProgressCallback = null;
         }
-        if(options.maxJobs === undefined || options.maxJobs === null) {
+        if (options.maxJobs === undefined || options.maxJobs === null) {
             options.maxJobs = 4;
         }
-        if(options.defaultModel === undefined || options.defaultModel === null) {
+        if (options.defaultModel === undefined || options.defaultModel === null) {
             options.defaultModel = "4x_RealisticRescaler_100000_G";
             // options.defaultModel = "ultrasharp-2.0.1"; 
         }
@@ -89,7 +89,7 @@ class Upscaler {
     }
 
     getListOfModels() {
-        if(!this.models.status == flags.READY) return [];
+        if (!this.models.status == flags.READY) return [];
         let models = [];
         let modelFolder = fs.readdirSync(this.models.path);
         if (modelFolder.length !== 0) {
@@ -419,11 +419,11 @@ class Upscaler {
             Promise.all(waiter).then((obj) => {
                 // console.log("All jobs completed");
                 // console.log({obj});
-                if(this.upscaleJobs.length > 0) this.jobRunner = this.processJobs();
+                if (this.upscaleJobs.length > 0) this.jobRunner = this.processJobs();
                 else this.jobRunner = null;
                 resolve();
             });
-            
+
         });
     }
 
@@ -494,18 +494,18 @@ class Upscaler {
                 // console.log({stderr});
             }).on('exit', (code) => {
                 // console.log("close code: " + code);
-                if(code == 0) resolve(true);
+                if (code == 0) resolve(true);
                 else resolve(false);
             }).on('close', (code) => {
                 // console.log("close code: " + code);
-                if(code == 0) resolve(true);
+                if (code == 0) resolve(true);
                 else resolve(false);
             });
             let scalingTimeout = setTimeout(() => {
                 scalingExec.kill('SIGINT');
                 this.execJobs.splice(this.execJobs.findIndex(job => job.id === execJobsCount), 1); // TODO: test this
             }, 1000 * 60 * 10);
-            this.execJobs.push({scalingExec, scalingTimeout, id: execJobsCount++});
+            this.execJobs.push({ scalingExec, scalingTimeout, id: execJobsCount++ });
         });
     }
 }
@@ -573,7 +573,7 @@ const downloadAndUnzip = (url, zipPath, extractPath) => {
 
             while (downloading) {
                 await waitSeconds(0.5);
-                if (downloadProgressCallback !== undefined)if( downloadProgressCallback !== null) downloadProgressCallback();
+                if (downloadProgressCallback !== undefined) if (downloadProgressCallback !== null) downloadProgressCallback();
             }
             console.log("Download complete");
             const zip = new AdmZip(zipPath);

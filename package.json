@@ -1,42 +1,42 @@
 {
-  "name": "ai-upscale-module",
-  "version": "1.2.0",
-  "description": "Upscale images using AI",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node ./build/build.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/andrewmcdan/ai-upscale-module.git"
-  },
-  "author": "",
-  "license": "GPL",
-  "keywords": [
-    "ai",
-    "upscale",
-    "image",
-    "images",
-    "image upscaler",
-    "image upscaling",
-    "image upscale",
-    "image upscale ai",
-    "image upscale node",
-    "Real-ESRGAN ncnn Vulkan",
-    "ESRGAN ",
-    "vulcan"
-  ],
-  "bugs": {
-    "url": "https://github.com/andrewmcdan/ai-upscale-module/issues"
-  },
-  "homepage": "https://github.com/andrewmcdan/ai-upscale-module#readme",
-  "dependencies": {
-    "adm-zip": "^0.5.10",
-    "fs": "^0.0.1-security",
-    "node-fetch": "^2.6.1",
-    "large-download": "file:../large-download"
-  },
-  "type": "commonjs",
+    "name": "ai-upscale-module",
+    "version": "1.2.0",
+    "description": "Upscale images using AI",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "node ./build/build.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/andrewmcdan/ai-upscale-module.git"
+    },
+    "author": "",
+    "license": "GPL",
+    "keywords": [
+        "ai",
+        "upscale",
+        "image",
+        "images",
+        "image upscaler",
+        "image upscaling",
+        "image upscale",
+        "image upscale ai",
+        "image upscale node",
+        "Real-ESRGAN ncnn Vulkan",
+        "ESRGAN ",
+        "vulcan"
+    ],
+    "bugs": {
+        "url": "https://github.com/andrewmcdan/ai-upscale-module/issues"
+    },
+    "homepage": "https://github.com/andrewmcdan/ai-upscale-module#readme",
+    "dependencies": {
+        "adm-zip": "^0.5.10",
+        "fs": "^0.0.1-security",
+        "node-fetch": "^2.6.1",
+        "large-download": "file:../large-download"
+    },
+    "type": "commonjs",
     "main": "./index.js",
     "exports": {
         ".": {
