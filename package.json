@@ -2,9 +2,9 @@
   "name": "ai-upscale-module",
   "version": "1.2.0",
   "description": "Upscale images using AI",
-  "main": "index.mjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node ./build/build.js"
   },
   "repository": {
     "type": "git",
@@ -35,5 +35,13 @@
     "fs": "^0.0.1-security",
     "node-fetch": "^2.6.1",
     "large-download": "file:../large-download"
-  }
+  },
+  "type": "commonjs",
+    "main": "./index.js",
+    "exports": {
+        ".": {
+            "import": "./index.mjs",
+            "require": "./index.js"
+        }
+    }
 }

@@ -3,10 +3,10 @@
 //   - d̶o̶w̶n̶l̶o̶a̶d̶ t̶h̶e̶ c̶o̶r̶r̶e̶c̶t̶ z̶i̶p̶ f̶i̶l̶e̶  (done, I think)
 //   - figure out how to run the upscaler
 
-import fs from 'fs';
-import AdmZip from 'adm-zip';
-import { exec } from 'child_process';
-import LargeDownload from 'large-download';
+const fs = require("fs");
+const AdmZip = require("adm-zip");
+const { exec } = require("child_process");
+const LargeDownload = require("large-download");
 
 const flags = {
     DOWNLOADING: "DOWNLOADING",
@@ -637,4 +637,4 @@ async function getReleaseDownloadLink(owner, repo, tagName, assetName) {
     }
 }
 
-export default Upscaler;
+module.exports = Upscaler;
