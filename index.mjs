@@ -428,6 +428,7 @@ class Upscaler {
     }
 
     async upscaleJob(inputFile, outputPath, format, scale, modelName) {
+
         // console.log("Upscaling: ", inputFile);
         if (outputPath == null) outputPath = this.options.defaultOutputPath;
         if (format == "") format = this.options.defaultFormat;
@@ -436,17 +437,25 @@ class Upscaler {
             if (this.upscaler.status != flags.READY || this.models.status != flags.READY) {
                 console.log('Upscaler is not ready');
                 resolve(false);
+                return;
+            }
+            if (inputFile == undefined || inputFile == null) {
+                console.log('Input file is undefined or null');
+                resolve(false);
+                return;
             }
             // check to see if inputFile exists
             if (!fs.existsSync(inputFile)) {
                 console.log('File does not exist');
                 resolve(false);
+                return;
             }
 
             // check to see if inputFile is a valid image
             if (!inputFile.endsWith('.png')) {
                 console.log('File is not a valid image');
                 resolve(false);
+                return;
             }
 
             let outputFile = inputFile.substring(inputFile.lastIndexOf('/') + 1, inputFile.lastIndexOf('.')) + '-upscaled.' + format;
@@ -465,11 +474,13 @@ class Upscaler {
             if (format !== "jpg" && format !== "png") {
                 console.log('Format is not supported');
                 resolve(false);
+                return;
             }
 
             if (scale !== 2 && scale !== 3 && scale !== 4) {
                 console.log('Scale is not supported');
                 resolve(false);
+                return;
             }
             // console.log("About to upscale");
             // run upscaler
@@ -496,10 +507,12 @@ class Upscaler {
                 // console.log("close code: " + code);
                 if (code == 0) resolve(true);
                 else resolve(false);
+                return;
             }).on('close', (code) => {
                 // console.log("close code: " + code);
                 if (code == 0) resolve(true);
                 else resolve(false);
+                return;
             });
             let scalingTimeout = setTimeout(() => {
                 scalingExec.kill('SIGINT');

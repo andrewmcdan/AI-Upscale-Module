@@ -428,29 +428,40 @@ class Upscaler {
     }
 
     async upscaleJob(inputFile, outputPath, format, scale, modelName) {
+
         // console.log("Upscaling: ", inputFile);
-        if (outputPath == null) outputPath = this.options.defaultOutputPath;
-        if (format == "") format = this.options.defaultFormat;
-        if (scale == -1) scale = this.options.defaultScale;
+        if (outputPath === null) outputPath = this.options.defaultOutputPath;
+        if (format === "") format = this.options.defaultFormat;
+        if (scale === -1) scale = this.options.defaultScale;
         return new Promise(async (resolve, reject) => {
+            console.log({ inputFile }, { outputPath }, { format }, { scale }, { modelName });
             if (this.upscaler.status != flags.READY || this.models.status != flags.READY) {
                 console.log('Upscaler is not ready');
                 resolve(false);
+                return;
+            }
+            if (inputFile == undefined || inputFile == null) {
+                console.log('Input file is undefined or null');
+                resolve(false);
+                return;
             }
             // check to see if inputFile exists
             if (!fs.existsSync(inputFile)) {
                 console.log('File does not exist');
                 resolve(false);
+                return;
             }
 
             // check to see if inputFile is a valid image
             if (!inputFile.endsWith('.png')) {
                 console.log('File is not a valid image');
                 resolve(false);
+                return;
             }
 
             let outputFile = inputFile.substring(inputFile.lastIndexOf('/') + 1, inputFile.lastIndexOf('.')) + '-upscaled.' + format;
-            outputPath = outputPath.substring(0, outputPath.lastIndexOf('/')); // outputPath without file name
+            // if (outputPath.includes('/') && !outputPath.endsWith('/')) outputPath = outputPath.substring(0, outputPath.lastIndexOf('/')); // outputPath without file name
+            // if (outputPath.includes('\\') && !outputPath.endsWith('\\')) outputPath = outputPath.substring(0, outputPath.lastIndexOf('\\')); // outputPath without file name
             //await waitSeconds(2);
             try {
                 if (!fs.existsSync(outputPath)) {
@@ -459,33 +470,37 @@ class Upscaler {
                 }
             } catch (e) {
                 console.log(e);
-                process.exit(1);
+                resolve(false);
+                return;
             }
 
             if (format !== "jpg" && format !== "png") {
                 console.log('Format is not supported');
                 resolve(false);
+                return;
             }
 
             if (scale !== 2 && scale !== 3 && scale !== 4) {
                 console.log('Scale is not supported');
                 resolve(false);
+                return;
             }
             // console.log("About to upscale");
             // run upscaler
             // resolve absolute paths
             this.upscaler.path = fs.realpathSync(this.upscaler.path);
             inputFile = fs.realpathSync(inputFile);
-            outputFile = fs.realpathSync(outputPath) + '\\\\' + outputFile;
+            if (outputFile.includes('\\\\')) outputFile = fs.realpathSync(outputPath) + '\\\\' + outputFile;
+            else outputFile = fs.realpathSync(outputPath) + '\\' + outputFile;
             this.models.path = fs.realpathSync(this.models.path);
-            let execString = this.upscaler.path;
+            let execString = "\"" + this.upscaler.path + "\"";
             execString += " -i " + "\"" + inputFile + "\"";
             execString += " -o " + "\"" + outputFile + "\"";
             execString += " -f " + format;
             execString += " -s " + scale;
             execString += " -m " + "\"" + this.models.path + "\"";
             execString += " -n " + modelName + " ";
-            // console.log("calling upscaler with command: ", execString);
+            console.log("calling upscaler with command: ", execString);
             let scalingExec = exec(execString, (err, stdout, stderr) => {
                 if (err) {
                     // console.log({err});
@@ -496,10 +511,12 @@ class Upscaler {
                 // console.log("close code: " + code);
                 if (code == 0) resolve(true);
                 else resolve(false);
+                return;
             }).on('close', (code) => {
                 // console.log("close code: " + code);
                 if (code == 0) resolve(true);
                 else resolve(false);
+                return;
             });
             let scalingTimeout = setTimeout(() => {
                 scalingExec.kill('SIGINT');
