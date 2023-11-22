@@ -23,6 +23,7 @@ let execJobsCount = 0;
 let downloadProgressCallback = null;
 
 class Upscaler {
+    static loggerFunction = null;
     constructor(options) {
         // first we check to see if the assets are downloaded (upscaler and models). This sets the flags.
         // if they are not downloaded, we download them in the background
@@ -49,8 +50,10 @@ class Upscaler {
         if (options.defaultModel === undefined || options.defaultModel === null) {
             options.defaultModel = "ultrasharp-2.0.1";
         }
-        if (options.logger === undefined || options.logger === null) {
-            options.logger = (...args) => { console.log(...args) };
+        if (typeof options.logger === 'function') {
+            this.loggerFunction = options.logger;
+        } else if (options.logger === undefined || options.logger === null) {
+            this.loggerFunction = (...args) => { console.log(...args) };
         }
 
         this.options = options;
@@ -87,7 +90,7 @@ class Upscaler {
     }
 
     static log(...args) {
-        this.options.logger(...args);
+        if (this.loggerFunction !== null) this.loggerFunction(...args);
     }
 
     setDefaultModel(modelName) {
