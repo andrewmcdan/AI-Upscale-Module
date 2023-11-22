@@ -47,8 +47,10 @@ class Upscaler {
             options.maxJobs = 4;
         }
         if (options.defaultModel === undefined || options.defaultModel === null) {
-            // options.defaultModel = "4x_RealisticRescaler_100000_G";
             options.defaultModel = "ultrasharp-2.0.1";
+        }
+        if (options.logger === undefined || options.logger === null) {
+            options.logger = (...args) => { console.log(...args) };
         }
 
         this.options = options;
@@ -59,18 +61,18 @@ class Upscaler {
         this.upscaler.status = flags.UNDEFINED;
         this.maxJobs = options.maxJobs;
         this.defaultModel = options.defaultModel;
-        // console.log('Checking for assets');
+        this.log('Checking for assets');
         this.status = "Checking for assets";
         this.checkForAssets();
         if (this.upscaler.status != flags.READY || this.models.status != flags.READY) {
-            // console.log('Assets not found. Downloading assets');
+            this.log('Assets not found. Downloading assets');
             this.status = "Assets not found. Downloading assets";
             this.downloadAssets().then((success) => {
-                //console.log('Assets downloaded');
+                this.log('Assets downloaded');
                 this.checkForAssets();
                 this.status = "Assets downloaded, Upscaler ready";
             }).catch((error) => {
-                // console.log('Error downloading assets');
+                this.log('Error downloading assets');
                 this.status = "Error downloading assets";
             });
         }
@@ -82,6 +84,10 @@ class Upscaler {
         if (this.upscaler.status == flags.READY && this.models.status == flags.READY) {
             this.status = flags.READY;
         }
+    }
+
+    log(...args) {
+        this.options.logger(...args);
     }
 
     setDefaultModel(modelName) {
@@ -162,7 +168,7 @@ class Upscaler {
         }
 
         if (this.upscaler.status == flags.NOT_DOWNLOADED) {
-            console.log('Upscaler is not installed. Will attempt to acquire in background.');
+            this.log('Upscaler is not installed. Will attempt to acquire in background.');
         }
 
         // find upscale model
@@ -216,7 +222,7 @@ class Upscaler {
         } else {
             this.models.status = flags.NOT_DOWNLOADED;
             this.models.path = "";
-            console.log('Models not found. Will attempt to acquire in background.');
+            this.log('Models not found. Will attempt to acquire in background.');
         }
     }
 
@@ -401,14 +407,14 @@ class Upscaler {
                 let job = this.upscaleJobs.shift();
                 job.status = "processing";
                 waiter.push(this.upscaleJob(job.inputFile, job.outputPath, job.format, job.scale, job.modelName).then((success) => {
-                    // console.log("Upscale completed/////////////////////////////////////////////////////////////////////////////////////////////////////");
+                    // this.log("Upscale completed/////////////////////////////////////////////////////////////////////////////////////////////////////");
                     if (success) {
                         job.status = "complete";
                     } else {
                         job.status = "failed";
                     }
                 }).catch((error) => {
-                    // console.log("Upscale failed xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+                    // this.log("Upscale failed xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
                     job.status = "failed";
                     console.error(error);
                 }).finally(() => {
@@ -417,8 +423,8 @@ class Upscaler {
                 }));
             }
             Promise.all(waiter).then((obj) => {
-                // console.log("All jobs completed");
-                // console.log({obj});
+                // this.log("All jobs completed");
+                // this.log({obj});
                 if (this.upscaleJobs.length > 0) this.jobRunner = this.processJobs();
                 else this.jobRunner = null;
                 resolve();
@@ -429,32 +435,32 @@ class Upscaler {
 
     async upscaleJob(inputFile, outputPath, format, scale, modelName) {
 
-        // console.log("Upscaling: ", inputFile);
+        // this.log("Upscaling: ", inputFile);
         if (outputPath === null) outputPath = this.options.defaultOutputPath;
         if (format === "") format = this.options.defaultFormat;
         if (scale === -1) scale = this.options.defaultScale;
         return new Promise(async (resolve, reject) => {
-            console.log({ inputFile }, { outputPath }, { format }, { scale }, { modelName });
+            this.log({ inputFile }, { outputPath }, { format }, { scale }, { modelName });
             if (this.upscaler.status != flags.READY || this.models.status != flags.READY) {
-                console.log('Upscaler is not ready');
+                this.log('Upscaler is not ready');
                 resolve(false);
                 return;
             }
             if (inputFile == undefined || inputFile == null) {
-                console.log('Input file is undefined or null');
+                this.log('Input file is undefined or null');
                 resolve(false);
                 return;
             }
             // check to see if inputFile exists
             if (!fs.existsSync(inputFile)) {
-                console.log('File does not exist');
+                this.log('File does not exist');
                 resolve(false);
                 return;
             }
 
             // check to see if inputFile is a valid image
             if (!inputFile.endsWith('.png')) {
-                console.log('File is not a valid image');
+                this.log('File is not a valid image');
                 resolve(false);
                 return;
             }
@@ -469,23 +475,23 @@ class Upscaler {
                     fs.mkdirSync(outputPath);
                 }
             } catch (e) {
-                console.log(e);
+                this.log(e);
                 resolve(false);
                 return;
             }
 
             if (format !== "jpg" && format !== "png") {
-                console.log('Format is not supported');
+                this.log('Format is not supported');
                 resolve(false);
                 return;
             }
 
             if (scale !== 2 && scale !== 3 && scale !== 4) {
-                console.log('Scale is not supported');
+                this.log('Scale is not supported');
                 resolve(false);
                 return;
             }
-            // console.log("About to upscale");
+            // this.log("About to upscale");
             // run upscaler
             // resolve absolute paths
             this.upscaler.path = fs.realpathSync(this.upscaler.path);
@@ -500,20 +506,20 @@ class Upscaler {
             execString += " -s " + scale;
             execString += " -m " + "\"" + this.models.path + "\"";
             execString += " -n " + modelName + " ";
-            console.log("calling upscaler with command: ", execString);
+            this.log("calling upscaler with command: ", execString);
             let scalingExec = exec(execString, (err, stdout, stderr) => {
                 if (err) {
-                    // console.log({err});
+                    // this.log({err});
                 }
-                // console.log({stdout});
-                // console.log({stderr});
+                // this.log({stdout});
+                // this.log({stderr});
             }).on('exit', (code) => {
-                // console.log("close code: " + code);
+                // this.log("close code: " + code);
                 if (code == 0) resolve(true);
                 else resolve(false);
                 return;
             }).on('close', (code) => {
-                // console.log("close code: " + code);
+                // this.log("close code: " + code);
                 if (code == 0) resolve(true);
                 else resolve(false);
                 return;
@@ -533,7 +539,7 @@ const downloadAndUnzip = (url, zipPath, extractPath) => {
         let modelsFile = false;
         fetch(url).then((response) => {
             const contentDisposition = response.headers.get("content-disposition");
-            // console.log("contentDisposition: ", contentDisposition);
+            // this.log("contentDisposition: ", contentDisposition);
             if (contentDisposition.indexOf("custom-models-main.zip") != -1) {
                 modelsFile = true;
             }
@@ -541,12 +547,12 @@ const downloadAndUnzip = (url, zipPath, extractPath) => {
                 const match = /filename=([^;]+)/.exec(contentDisposition);
                 if (match) {
                     const filename = match[1];
-                    // console.log("File name:", filename);
+                    // this.log("File name:", filename);
                 } else {
-                    // console.log("No filename found in Content-Disposition header");
+                    // this.log("No filename found in Content-Disposition header");
                 }
             } else {
-                // console.log("Content-Disposition header not found in the response");
+                // this.log("Content-Disposition header not found in the response");
             }
         }).catch((error) => {
             console.error("Error:", error);
@@ -564,16 +570,16 @@ const downloadAndUnzip = (url, zipPath, extractPath) => {
                 timeout: 300000,
                 retries: 3,
                 onRetry: (error) => {
-                    console.log("Download error. Retrying: ", { error }, { url }, { zipPath }, { extractPath });
+                    this.log("Download error. Retrying: ", { error }, { url }, { zipPath }, { extractPath });
                 },
                 onData: (downloaded, total) => {
-                    // console.log( {downloaded}, {total});
+                    // this.log( {downloaded}, {total});
                     downloadTotal = modelsFile ? modelsFileSize : parseInt(total);
                     if (!isNaN(downloadTotal)) {
                         // convert to MB and truncate to 2 decimal places
                         downloadTotal = (downloadTotal / 1000000).toFixed(2);
                         downloaded = (downloaded / 1000000).toFixed(2);
-                        console.log("Download progress: ", (downloaded / downloadTotal).toFixed(2) * 100 + "%");
+                        this.log("Download progress: ", (downloaded / downloadTotal).toFixed(2) * 100 + "%");
                     }
                 },
                 minSizeToShowProgress: Infinity
@@ -592,7 +598,7 @@ const downloadAndUnzip = (url, zipPath, extractPath) => {
                 await waitSeconds(0.5);
                 if (downloadProgressCallback !== undefined) if (downloadProgressCallback !== null) downloadProgressCallback();
             }
-            console.log("Download complete");
+            this.log("Download complete");
             const zip = new AdmZip(zipPath);
             zip.extractAllTo(extractPath, true);
             resolve(true);
@@ -629,16 +635,16 @@ async function getReleaseDownloadLink(owner, repo, tagName, assetName) {
         // Get the release by tag name
         const releaseResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/tags/${tagName}`);
         const releaseData = await releaseResponse.json();
-        // console.log("////////////////////////////////////////////");
-        // console.log(releaseData);
+        // this.log("////////////////////////////////////////////");
+        // this.log(releaseData);
         // Find the asset with the given name
         let asset = false;
         releaseData.assets.forEach((a) => {
-            // console.log(a.name);
+            // this.log(a.name);
             if (a.name.lastIndexOf(assetName) != -1) {
-                // console.log("found");
+                // this.log("found");
                 asset = a;
-                // console.log(a.browser_download_url);
+                // this.log(a.browser_download_url);
             }
         });
 
@@ -646,7 +652,7 @@ async function getReleaseDownloadLink(owner, repo, tagName, assetName) {
             // Return the download URL for the asset
             return asset.browser_download_url;
         } else {
-            // console.log(`Asset "${assetName}" not found in the release.`);
+            // this.log(`Asset "${assetName}" not found in the release.`);
             return null;
         }
     } catch (error) {
