@@ -152,10 +152,15 @@ class Upscaler {
             if (latestVersion.folderName !== "") {
                 let dir = `./unzipped/${latestVersion.folderName}/`;
                 let files = fs.readdirSync(dir);
-                let exeFile = files.find(file => file.endsWith('.exe'));
-                if (exeFile !== undefined) {
+                let executable = files.find(file => file.includes('realesrgan-ncnn-vulkan'));
+                if (executable !== undefined) {
                     upscalerFound = true;
-                    upscalerPath = dir + exeFile;
+                    upscalerPath = dir + executable;
+                }
+                // check for platform is linux
+                if (process.platform === 'linux') {
+                    // make sure executable is executable
+                    fs.chmodSync(upscalerPath, 0o755);
                 }
             }
             if (upscalerFound) {
