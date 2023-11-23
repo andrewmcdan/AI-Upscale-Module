@@ -52,7 +52,7 @@ class Upscaler {
         }
         if (typeof options.logger === 'function') {
             Upscaler.loggerFunction = options.logger;
-        } else if (options.logger === undefined || options.logger === null) {
+        } else {
             Upscaler.loggerFunction = (...args) => { console.log(...args) };
         }
 
