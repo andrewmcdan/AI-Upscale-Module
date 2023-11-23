@@ -51,9 +51,9 @@ class Upscaler {
             options.defaultModel = "ultrasharp-2.0.1";
         }
         if (typeof options.logger === 'function') {
-            this.loggerFunction = options.logger;
+            Upscaler.loggerFunction = options.logger;
         } else if (options.logger === undefined || options.logger === null) {
-            this.loggerFunction = (...args) => { console.log(...args) };
+            Upscaler.loggerFunction = (...args) => { console.log(...args) };
         }
 
         this.options = options;
@@ -90,7 +90,7 @@ class Upscaler {
     }
 
     static log(...args) {
-        if (this.loggerFunction !== null) this.loggerFunction(...args);
+        if (Upscaler.loggerFunction !== null) Upscaler.loggerFunction(...args);
     }
 
     setDefaultModel(modelName) {
