@@ -514,7 +514,7 @@ class Upscaler {
             execString += " -s " + scale;
             execString += " -m " + "\"" + this.models.path + "\"";
             execString += " -n " + modelName;
-            execString += " -g 0";
+            execString += " -g 1";
             execString += " -j 1:1:1";
             Upscaler.log("calling upscaler with command: ", execString);
             let scalingExec = exec(execString, (err, stdout, stderr) => {
