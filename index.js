@@ -505,7 +505,7 @@ class Upscaler {
             this.upscaler.path = fs.realpathSync(this.upscaler.path);
             inputFile = fs.realpathSync(inputFile);
             if (outputFile.includes('\\\\')) outputFile = fs.realpathSync(outputPath) + '\\\\' + outputFile;
-            else outputFile = fs.realpathSync(outputPath) + '\\' + outputFile;
+            else outputFile = fs.realpathSync(outputPath) + '/' + outputFile;
             this.models.path = fs.realpathSync(this.models.path);
             let execString = "\"" + this.upscaler.path + "\"";
             execString += " -i " + "\"" + inputFile + "\"";
