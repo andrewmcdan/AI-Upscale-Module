@@ -5,7 +5,7 @@
 
 const fs = require("fs");
 const AdmZip = require("adm-zip");
-const { exec } = require("child_process");
+const { spawn } = require("child_process");
 const LargeDownload = require("large-download");
 
 const flags = {
@@ -507,33 +507,58 @@ class Upscaler {
             if (outputFile.includes('\\\\')) outputFile = fs.realpathSync(outputPath) + '\\\\' + outputFile;
             else outputFile = fs.realpathSync(outputPath) + '/' + outputFile;
             this.models.path = fs.realpathSync(this.models.path);
-            let execString = "\"" + this.upscaler.path + "\"";
-            execString += " -i " + "\"" + inputFile + "\"";
-            execString += " -o " + "\"" + outputFile + "\"";
-            execString += " -f " + format;
-            execString += " -s " + scale;
-            execString += " -m " + "\"" + this.models.path + "\"";
-            execString += " -n " + modelName;
-            execString += " -g 1";
-            execString += " -j 1:1:1";
-            Upscaler.log("calling upscaler with command: ", execString);
-            let scalingExec = exec(execString, (err, stdout, stderr) => {
-                if (err) {
-                    // Upscaler.log({err});
-                }
-                // Upscaler.log({stdout});
-                // Upscaler.log({stderr});
-            }).on('exit', (code) => {
-                // Upscaler.log("close code: " + code);
-                if (code == 0) resolve(true);
-                else resolve(false);
-                return;
-            }).on('close', (code) => {
-                // Upscaler.log("close code: " + code);
+            let spawnString = this.upscaler.path;
+            let spawnOpts = [];
+            // let execString = "\"" + this.upscaler.path + "\"";
+            // execString += " -i " + "\"" + inputFile + "\"";
+            spawnOpts.push("-i " + "\"" + inputFile + "\"");
+            // execString += " -o " + "\"" + outputFile + "\"";
+            spawnOpts.push("-o " + "\"" + outputFile + "\"");
+            // execString += " -f " + format;
+            spawnOpts.push("-f " + format);
+            // execString += " -s " + scale;
+            spawnOpts.push("-s " + scale);
+            // execString += " -m " + "\"" + this.models.path + "\"";
+            spawnOpts.push("-m " + "\"" + this.models.path + "\"");
+            // execString += " -n " + modelName;
+            spawnOpts.push("-n " + modelName);
+            // execString += " -g 1";
+
+            // execString += " -j 1:1:1";
+            spawnOpts.push("-j 1:1:1");
+
+            // Upscaler.log("calling upscaler with command: ", execString);
+            // let scalingExec = exec(execString, (err, stdout, stderr) => {
+            //     if (err) {
+            //         // Upscaler.log({err});
+            //     }
+            //     // Upscaler.log({stdout});
+            //     // Upscaler.log({stderr});
+            // }).on('exit', (code) => {
+            //     // Upscaler.log("close code: " + code);
+            //     if (code == 0) resolve(true);
+            //     else resolve(false);
+            //     return;
+            // }).on('close', (code) => {
+            //     // Upscaler.log("close code: " + code);
+            //     if (code == 0) resolve(true);
+            //     else resolve(false);
+            //     return;
+            // });
+            let scalingExec = spawn(spawnString, spawnOpts, { shell: true });
+            scalingExec.stdout.on('data', (data) => {
+                Upscaler.log(`stdout: ${data}`);
+            });
+            scalingExec.stderr.on('data', (data) => {
+                Upscaler.log(`stderr: ${data}`);
+            });
+            scalingExec.on('close', (code) => {
+                Upscaler.log(`child process exited with code ${code}`);
                 if (code == 0) resolve(true);
                 else resolve(false);
                 return;
             });
+
             let scalingTimeout = setTimeout(() => {
                 scalingExec.kill('SIGINT');
                 this.execJobs.splice(this.execJobs.findIndex(job => job.id === execJobsCount), 1); // TODO: test this
