@@ -513,7 +513,7 @@ class Upscaler {
             execString += " -f " + format;
             execString += " -s " + scale;
             execString += " -m " + "\"" + this.models.path + "\"";
-            execString += " -n " + modelName + " ";
+            execString += " -n " + modelName;
             execString += " -g 0";
             execString += " -j 1:1:1";
             Upscaler.log("calling upscaler with command: ", execString);
