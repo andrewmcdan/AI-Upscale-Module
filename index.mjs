@@ -23,6 +23,7 @@ let execJobsCount = 0;
 let downloadProgressCallback = null;
 
 class Upscaler {
+    static loggerFunction = null;
     constructor(options) {
         // first we check to see if the assets are downloaded (upscaler and models). This sets the flags.
         // if they are not downloaded, we download them in the background
@@ -47,8 +48,12 @@ class Upscaler {
             options.maxJobs = 4;
         }
         if (options.defaultModel === undefined || options.defaultModel === null) {
-            // options.defaultModel = "4x_RealisticRescaler_100000_G";
             options.defaultModel = "ultrasharp-2.0.1";
+        }
+        if (typeof options.logger === 'function') {
+            Upscaler.loggerFunction = options.logger;
+        } else {
+            Upscaler.loggerFunction = (...args) => { console.log(...args) };
         }
 
         this.options = options;
@@ -59,18 +64,18 @@ class Upscaler {
         this.upscaler.status = flags.UNDEFINED;
         this.maxJobs = options.maxJobs;
         this.defaultModel = options.defaultModel;
-        // console.log('Checking for assets');
+        Upscaler.log('Checking for assets');
         this.status = "Checking for assets";
         this.checkForAssets();
         if (this.upscaler.status != flags.READY || this.models.status != flags.READY) {
-            // console.log('Assets not found. Downloading assets');
+            Upscaler.log('Assets not found. Downloading assets');
             this.status = "Assets not found. Downloading assets";
             this.downloadAssets().then((success) => {
-                //console.log('Assets downloaded');
+                Upscaler.log('Assets downloaded');
                 this.checkForAssets();
                 this.status = "Assets downloaded, Upscaler ready";
             }).catch((error) => {
-                // console.log('Error downloading assets');
+                Upscaler.log('Error downloading assets');
                 this.status = "Error downloading assets";
             });
         }
@@ -82,6 +87,10 @@ class Upscaler {
         if (this.upscaler.status == flags.READY && this.models.status == flags.READY) {
             this.status = flags.READY;
         }
+    }
+
+    static log(...args) {
+        if (Upscaler.loggerFunction !== null) Upscaler.loggerFunction(...args);
     }
 
     setDefaultModel(modelName) {
@@ -143,10 +152,15 @@ class Upscaler {
             if (latestVersion.folderName !== "") {
                 let dir = `./unzipped/${latestVersion.folderName}/`;
                 let files = fs.readdirSync(dir);
-                let exeFile = files.find(file => file.endsWith('.exe'));
-                if (exeFile !== undefined) {
+                let executable = files.find(file => file.includes('realesrgan-ncnn-vulkan'));
+                if (executable !== undefined) {
                     upscalerFound = true;
-                    upscalerPath = dir + exeFile;
+                    upscalerPath = dir + executable;
+                }
+                // check for platform is linux
+                if (process.platform === 'linux') {
+                    // make sure executable is executable
+                    fs.chmodSync(upscalerPath, 0o755);
                 }
             }
             if (upscalerFound) {
@@ -162,7 +176,7 @@ class Upscaler {
         }
 
         if (this.upscaler.status == flags.NOT_DOWNLOADED) {
-            console.log('Upscaler is not installed. Will attempt to acquire in background.');
+            Upscaler.log('Upscaler is not installed. Will attempt to acquire in background.');
         }
 
         // find upscale model
@@ -216,7 +230,7 @@ class Upscaler {
         } else {
             this.models.status = flags.NOT_DOWNLOADED;
             this.models.path = "";
-            console.log('Models not found. Will attempt to acquire in background.');
+            Upscaler.log('Models not found. Will attempt to acquire in background.');
         }
     }
 
@@ -401,14 +415,14 @@ class Upscaler {
                 let job = this.upscaleJobs.shift();
                 job.status = "processing";
                 waiter.push(this.upscaleJob(job.inputFile, job.outputPath, job.format, job.scale, job.modelName).then((success) => {
-                    // console.log("Upscale completed/////////////////////////////////////////////////////////////////////////////////////////////////////");
+                    // Upscaler.log("Upscale completed/////////////////////////////////////////////////////////////////////////////////////////////////////");
                     if (success) {
                         job.status = "complete";
                     } else {
                         job.status = "failed";
                     }
                 }).catch((error) => {
-                    // console.log("Upscale failed xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+                    // Upscaler.log("Upscale failed xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
                     job.status = "failed";
                     console.error(error);
                 }).finally(() => {
@@ -417,8 +431,8 @@ class Upscaler {
                 }));
             }
             Promise.all(waiter).then((obj) => {
-                // console.log("All jobs completed");
-                // console.log({obj});
+                // Upscaler.log("All jobs completed");
+                // Upscaler.log({obj});
                 if (this.upscaleJobs.length > 0) this.jobRunner = this.processJobs();
                 else this.jobRunner = null;
                 resolve();
@@ -429,37 +443,39 @@ class Upscaler {
 
     async upscaleJob(inputFile, outputPath, format, scale, modelName) {
 
-        // console.log("Upscaling: ", inputFile);
-        if (outputPath == null) outputPath = this.options.defaultOutputPath;
-        if (format == "") format = this.options.defaultFormat;
-        if (scale == -1) scale = this.options.defaultScale;
+        // Upscaler.log("Upscaling: ", inputFile);
+        if (outputPath === null) outputPath = this.options.defaultOutputPath;
+        if (format === "") format = this.options.defaultFormat;
+        if (scale === -1) scale = this.options.defaultScale;
         return new Promise(async (resolve, reject) => {
+            Upscaler.log({ inputFile }, { outputPath }, { format }, { scale }, { modelName });
             if (this.upscaler.status != flags.READY || this.models.status != flags.READY) {
-                console.log('Upscaler is not ready');
+                Upscaler.log('Upscaler is not ready');
                 resolve(false);
                 return;
             }
             if (inputFile == undefined || inputFile == null) {
-                console.log('Input file is undefined or null');
+                Upscaler.log('Input file is undefined or null');
                 resolve(false);
                 return;
             }
             // check to see if inputFile exists
             if (!fs.existsSync(inputFile)) {
-                console.log('File does not exist');
+                Upscaler.log('File does not exist');
                 resolve(false);
                 return;
             }
 
             // check to see if inputFile is a valid image
             if (!inputFile.endsWith('.png')) {
-                console.log('File is not a valid image');
+                Upscaler.log('File is not a valid image');
                 resolve(false);
                 return;
             }
 
             let outputFile = inputFile.substring(inputFile.lastIndexOf('/') + 1, inputFile.lastIndexOf('.')) + '-upscaled.' + format;
-            outputPath = outputPath.substring(0, outputPath.lastIndexOf('/')); // outputPath without file name
+            // if (outputPath.includes('/') && !outputPath.endsWith('/')) outputPath = outputPath.substring(0, outputPath.lastIndexOf('/')); // outputPath without file name
+            // if (outputPath.includes('\\') && !outputPath.endsWith('\\')) outputPath = outputPath.substring(0, outputPath.lastIndexOf('\\')); // outputPath without file name
             //await waitSeconds(2);
             try {
                 if (!fs.existsSync(outputPath)) {
@@ -467,49 +483,53 @@ class Upscaler {
                     fs.mkdirSync(outputPath);
                 }
             } catch (e) {
-                console.log(e);
-                process.exit(1);
+                Upscaler.log(e);
+                resolve(false);
+                return;
             }
 
             if (format !== "jpg" && format !== "png") {
-                console.log('Format is not supported');
+                Upscaler.log('Format is not supported');
                 resolve(false);
                 return;
             }
 
             if (scale !== 2 && scale !== 3 && scale !== 4) {
-                console.log('Scale is not supported');
+                Upscaler.log('Scale is not supported');
                 resolve(false);
                 return;
             }
-            // console.log("About to upscale");
+            // Upscaler.log("About to upscale");
             // run upscaler
             // resolve absolute paths
             this.upscaler.path = fs.realpathSync(this.upscaler.path);
             inputFile = fs.realpathSync(inputFile);
-            outputFile = fs.realpathSync(outputPath) + '\\\\' + outputFile;
+            if (outputFile.includes('\\\\')) outputFile = fs.realpathSync(outputPath) + '\\\\' + outputFile;
+            else outputFile = fs.realpathSync(outputPath) + '/' + outputFile;
             this.models.path = fs.realpathSync(this.models.path);
-            let execString = this.upscaler.path;
+            let execString = "\"" + this.upscaler.path + "\"";
             execString += " -i " + "\"" + inputFile + "\"";
             execString += " -o " + "\"" + outputFile + "\"";
             execString += " -f " + format;
             execString += " -s " + scale;
             execString += " -m " + "\"" + this.models.path + "\"";
-            execString += " -n " + modelName + " ";
-            // console.log("calling upscaler with command: ", execString);
+            execString += " -n " + modelName;
+            execString += " -g 0";
+            execString += " -j 1:1:1";
+            Upscaler.log("calling upscaler with command: ", execString);
             let scalingExec = exec(execString, (err, stdout, stderr) => {
                 if (err) {
-                    // console.log({err});
+                    // Upscaler.log({err});
                 }
-                // console.log({stdout});
-                // console.log({stderr});
+                // Upscaler.log({stdout});
+                // Upscaler.log({stderr});
             }).on('exit', (code) => {
-                // console.log("close code: " + code);
+                // Upscaler.log("close code: " + code);
                 if (code == 0) resolve(true);
                 else resolve(false);
                 return;
             }).on('close', (code) => {
-                // console.log("close code: " + code);
+                // Upscaler.log("close code: " + code);
                 if (code == 0) resolve(true);
                 else resolve(false);
                 return;

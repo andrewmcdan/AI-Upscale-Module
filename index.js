@@ -549,7 +549,7 @@ const downloadAndUnzip = (url, zipPath, extractPath) => {
         let modelsFile = false;
         fetch(url).then((response) => {
             const contentDisposition = response.headers.get("content-disposition");
-            // Upscaler.log("contentDisposition: ", contentDisposition);
+            // console.log("contentDisposition: ", contentDisposition);
             if (contentDisposition.indexOf("custom-models-main.zip") != -1) {
                 modelsFile = true;
             }
@@ -557,12 +557,12 @@ const downloadAndUnzip = (url, zipPath, extractPath) => {
                 const match = /filename=([^;]+)/.exec(contentDisposition);
                 if (match) {
                     const filename = match[1];
-                    // Upscaler.log("File name:", filename);
+                    // console.log("File name:", filename);
                 } else {
-                    // Upscaler.log("No filename found in Content-Disposition header");
+                    // console.log("No filename found in Content-Disposition header");
                 }
             } else {
-                // Upscaler.log("Content-Disposition header not found in the response");
+                // console.log("Content-Disposition header not found in the response");
             }
         }).catch((error) => {
             console.error("Error:", error);
@@ -580,16 +580,16 @@ const downloadAndUnzip = (url, zipPath, extractPath) => {
                 timeout: 300000,
                 retries: 3,
                 onRetry: (error) => {
-                    Upscaler.log("Download error. Retrying: ", { error }, { url }, { zipPath }, { extractPath });
+                    console.log("Download error. Retrying: ", { error }, { url }, { zipPath }, { extractPath });
                 },
                 onData: (downloaded, total) => {
-                    // Upscaler.log( {downloaded}, {total});
+                    // console.log( {downloaded}, {total});
                     downloadTotal = modelsFile ? modelsFileSize : parseInt(total);
                     if (!isNaN(downloadTotal)) {
                         // convert to MB and truncate to 2 decimal places
                         downloadTotal = (downloadTotal / 1000000).toFixed(2);
                         downloaded = (downloaded / 1000000).toFixed(2);
-                        Upscaler.log("Download progress: ", (downloaded / downloadTotal).toFixed(2) * 100 + "%");
+                        console.log("Download progress: ", (downloaded / downloadTotal).toFixed(2) * 100 + "%");
                     }
                 },
                 minSizeToShowProgress: Infinity
@@ -608,7 +608,7 @@ const downloadAndUnzip = (url, zipPath, extractPath) => {
                 await waitSeconds(0.5);
                 if (downloadProgressCallback !== undefined) if (downloadProgressCallback !== null) downloadProgressCallback();
             }
-            Upscaler.log("Download complete");
+            console.log("Download complete");
             const zip = new AdmZip(zipPath);
             zip.extractAllTo(extractPath, true);
             resolve(true);
@@ -645,16 +645,16 @@ async function getReleaseDownloadLink(owner, repo, tagName, assetName) {
         // Get the release by tag name
         const releaseResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/tags/${tagName}`);
         const releaseData = await releaseResponse.json();
-        // Upscaler.log("////////////////////////////////////////////");
-        // Upscaler.log(releaseData);
+        // console.log("////////////////////////////////////////////");
+        // console.log(releaseData);
         // Find the asset with the given name
         let asset = false;
         releaseData.assets.forEach((a) => {
-            // Upscaler.log(a.name);
+            // console.log(a.name);
             if (a.name.lastIndexOf(assetName) != -1) {
-                // Upscaler.log("found");
+                // console.log("found");
                 asset = a;
-                // Upscaler.log(a.browser_download_url);
+                // console.log(a.browser_download_url);
             }
         });
 
@@ -662,7 +662,7 @@ async function getReleaseDownloadLink(owner, repo, tagName, assetName) {
             // Return the download URL for the asset
             return asset.browser_download_url;
         } else {
-            // Upscaler.log(`Asset "${assetName}" not found in the release.`);
+            // console.log(`Asset "${assetName}" not found in the release.`);
             return null;
         }
     } catch (error) {
