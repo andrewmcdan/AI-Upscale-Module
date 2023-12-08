@@ -5,6 +5,7 @@
 
 const fs = require("fs");
 const AdmZip = require("adm-zip");
+const { exec } = require("child_process");
 const LargeDownload = require("large-download");
 
 const flags = {

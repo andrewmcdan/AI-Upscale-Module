@@ -5,6 +5,7 @@
 
 import fs from 'fs';
 import AdmZip from 'adm-zip';
+import { exec } from 'child_process';
 import LargeDownload from 'large-download';
 
 const flags = {
