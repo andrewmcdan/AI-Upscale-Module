@@ -399,6 +399,20 @@ class Upscaler {
         }
     }
 
+    cancelJob(jobID) {
+        let job = this.upscaleJobs.find(job => job.id === jobID);
+        if (job == undefined) {
+            job = this.finishedJobs.find(job => job.id === jobID);
+            if (job == undefined)
+                return false;
+            else
+                return true;
+        } else {
+            job.status = "cancelled";
+            return true;
+        }
+    }
+
     getNumberOfRunningJobs() {
         return this.upscaleJobsRunningCount;
     }
@@ -413,6 +427,7 @@ class Upscaler {
             while (this.upscaleJobs.length > 0 && this.upscaleJobsRunningCount < this.maxJobs) {
                 this.upscaleJobsRunningCount++;
                 let job = this.upscaleJobs.shift();
+                if (job.status == "cancelled") continue;
                 job.status = "processing";
                 waiter.push(this.upscaleJob(job.inputFile, job.outputPath, job.format, job.scale, job.modelName).then((success) => {
                     // Upscaler.log("Upscale completed/////////////////////////////////////////////////////////////////////////////////////////////////////");
@@ -525,7 +540,7 @@ class Upscaler {
             // execString += " -g 1";
 
             // execString += " -j 1:1:1";
-            spawnOpts.push("-j 1:1:1");
+            // spawnOpts.push("-j 1:1:1");
 
             // Upscaler.log("calling upscaler with command: ", execString);
             // let scalingExec = exec(execString, (err, stdout, stderr) => {
