@@ -3,6 +3,11 @@
 //   - d̶o̶w̶n̶l̶o̶a̶d̶ t̶h̶e̶ c̶o̶r̶r̶e̶c̶t̶ z̶i̶p̶ f̶i̶l̶e̶  (done, I think)
 //   - figure out how to run the upscaler
 
+
+
+// Need to rewrite part of this to support custom version of upscaler that runs continuously and takes new jobs from stdin
+// It will also need to ge the custom version of the upscaler from github/andrewmcdan
+
 import fs from 'fs';
 import AdmZip from 'adm-zip';
 import { spawn } from 'child_process';
@@ -456,6 +461,8 @@ class Upscaler {
         });
     }
 
+    // TODO: rewrite so that if the executable is already running, it doesn't start a new one.
+    // This will be in support of the new continuous upscaler that takes jobs from stdin
     async upscaleJob(inputFile, outputPath, format, scale, modelName) {
 
         // Upscaler.log("Upscaling: ", inputFile);
