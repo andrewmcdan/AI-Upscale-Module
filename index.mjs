@@ -579,7 +579,7 @@ class Upscaler {
                 this.scalerExec.stderr.on('data', (data) => {
                     Upscaler.log(`stderr: ${data}`);
                     // if (!data.includes("%")) stderrString += data;
-                    stdoutString += data;
+                    stderrString += data;
                     stderrString = checkForDone(stderrString);
                 });
                 this.scalerExec.on('close', async (code) => {
