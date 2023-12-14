@@ -3,6 +3,11 @@
 //   - d̶o̶w̶n̶l̶o̶a̶d̶ t̶h̶e̶ c̶o̶r̶r̶e̶c̶t̶ z̶i̶p̶ f̶i̶l̶e̶  (done, I think)
 //   - figure out how to run the upscaler
 
+
+
+// Need to rewrite part of this to support custom version of upscaler that runs continuously and takes new jobs from stdin
+// It will also need to ge the custom version of the upscaler from github/andrewmcdan
+
 const fs = require("fs");
 const AdmZip = require("adm-zip");
 const { spawn } = require("child_process");
@@ -251,7 +256,8 @@ class Upscaler {
 
     async downloadAssets() {
         return new Promise(async (resolve, reject) => {
-            const owner = 'upscayl';
+            // const owner = 'upscayl';
+            const owner = 'andrewmcdan';
             const repo = 'upscayl-ncnn';
             let downloadSuccess = false;
 
@@ -399,6 +405,20 @@ class Upscaler {
         }
     }
 
+    cancelJob(jobID) {
+        let job = this.upscaleJobs.find(job => job.id === jobID);
+        if (job == undefined) {
+            job = this.finishedJobs.find(job => job.id === jobID);
+            if (job == undefined)
+                return false;
+            else
+                return true;
+        } else {
+            job.status = "cancelled";
+            return true;
+        }
+    }
+
     getNumberOfRunningJobs() {
         return this.upscaleJobsRunningCount;
     }
@@ -413,6 +433,7 @@ class Upscaler {
             while (this.upscaleJobs.length > 0 && this.upscaleJobsRunningCount < this.maxJobs) {
                 this.upscaleJobsRunningCount++;
                 let job = this.upscaleJobs.shift();
+                if (job.status == "cancelled") continue;
                 job.status = "processing";
                 waiter.push(this.upscaleJob(job.inputFile, job.outputPath, job.format, job.scale, job.modelName).then((success) => {
                     // Upscaler.log("Upscale completed/////////////////////////////////////////////////////////////////////////////////////////////////////");
@@ -441,6 +462,8 @@ class Upscaler {
         });
     }
 
+    // TODO: rewrite so that if the executable is already running, it doesn't start a new one.
+    // This will be in support of the new continuous upscaler that takes jobs from stdin
     async upscaleJob(inputFile, outputPath, format, scale, modelName) {
 
         // Upscaler.log("Upscaling: ", inputFile);
@@ -525,7 +548,7 @@ class Upscaler {
             // execString += " -g 1";
 
             // execString += " -j 1:1:1";
-            spawnOpts.push("-j 1:1:1");
+            // spawnOpts.push("-j 1:1:1");
 
             // Upscaler.log("calling upscaler with command: ", execString);
             // let scalingExec = exec(execString, (err, stdout, stderr) => {
