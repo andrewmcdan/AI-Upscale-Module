@@ -564,7 +564,7 @@ class Upscaler {
                         if ((inFileName.includes(inputFileTemp) && outFileName.includes(outputFileTemp)) || (inputFileTemp.includes(inFileName) && outputFileTemp.includes(outFileName))) {
                             this.scalingsInprogress--;
                             resolve(true);
-                            await waitSeconds(5);
+                            await waitSeconds(1);
                             console.log("Upscaler finished");
                             console.log(this.nextToProcess);
                             console.log(this.scalingsInprogress);
@@ -577,7 +577,9 @@ class Upscaler {
                                 });
                                 this.nextToProcess = [];
                                 console.log("jobsString: ", jobsString);
-                                this.scalerExec.stdin.write(jobsString + "\n");
+                                this.scalerExec.child.stdin.write(jobsString + "\n");
+                            } else if (this.nextToProcess.length == 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
+                                this.scalerExec.child.stdin.write("exit\n");
                             }
                         }
                         return "";
