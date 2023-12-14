@@ -561,19 +561,9 @@ class Upscaler {
                         console.log("inFileName: ", inFileName);
                         console.log("outFileName: ", outFileName);
                         if ((inFileName.includes(inputFileTemp) && outFileName.includes(outputFileTemp)) || (inputFileTemp.includes(inFileName) && outputFileTemp.includes(outFileName))) {
-                            console.log("Upscaler finished");
                             this.scalingsInprogress--;
                             resolve(true);
-                            await waitSeconds(1);
-                            if (this.nextToProcess.length > 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
-                                // do next jobs
-                                let jobsString = "";
-                                this.nextToProcess.forEach((job, i) => {
-                                    jobsString += job.inputFile + ":" + job.outputFile + ";";
-                                });
-                                this.nextToProcess = [];
-                                this.scalerExec.stdin.write(jobsString + "\n");
-                            }
+                            console.log("Upscaler finished");
                             return "";
                         }
                     }
@@ -601,6 +591,30 @@ class Upscaler {
                     resolve(false);
                     return;
                 });
+                setInterval(() => {
+                    if (this.nextToProcess.length > 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
+                        // do next jobs
+                        let jobsString = "";
+                        this.nextToProcess.forEach((job, i) => {
+                            jobsString += job.inputFile + ":" + job.outputFile + ";";
+                        });
+                        this.nextToProcess = [];
+                        this.scalerExec.stdin.write(jobsString + "\n");
+                    }
+                }, 2000);
+                this.killScalerTimeout = setInterval(() => {
+                    if (this.nextToProcess.length == 0 && this.scalerExec !== null && this.killScalerTimeoutTriggered) {
+                        Upscaler.log("Killing upscaler");
+                        this.scalerExec.kill("SIGINT");
+                        spawn("taskkill", ["/pid", this.scalerExec.pid, '/f', '/t']);
+                        spawn('killall', ['realesrgan-ncnn-vulkan']);
+                        clearInterval(this.killScalerTimeout);
+                        this.killScalerTimeout = null;
+                        this.killScalerTimeoutTriggered = false;
+                        this.scalerExec = null;
+                    }
+                    if (this.nextToProcess.length == 0 && this.scalerExec !== null) this.killScalerTimeoutTriggered = true;
+                }, 120 * 1000);
             } else {
                 Upscaler.log("Upscaler is already running");
                 this.nextToProcess.push({ inputFile, outputFile });
