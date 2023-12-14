@@ -542,15 +542,15 @@ class Upscaler {
                 let stdoutString = "";
                 let stderrString = "";
                 const checkForDone = async (data) => {
-                    console.log("checkForDone: ", data.length);
+                    // console.log("checkForDone: ", data.length);
                     if (data.includes("done")) {
-                        console.log("found \"done\"");
+                        // console.log("found \"done\"");
                         let fileNames = ""
                         let lines = data.split("\n");
                         lines.forEach((line, i) => {
                             if (line.includes("done")) {
                                 fileNames = line;
-                                console.log("fileNames: ", fileNames)
+                                // console.log("fileNames: ", fileNames)
                             }
                         });
                         let fileNames_1 = fileNames.split("->");
@@ -558,8 +558,8 @@ class Upscaler {
                         let outFileName = fileNames_1[1];
                         let inputFileTemp = inputFile.replaceAll("\"", "");
                         let outputFileTemp = outputFile.replaceAll("\"", "");
-                        console.log("inFileName: ", inFileName);
-                        console.log("outFileName: ", outFileName);
+                        // console.log("inFileName: ", inFileName);
+                        // console.log("outFileName: ", outFileName);
                         if ((inFileName.includes(inputFileTemp) && outFileName.includes(outputFileTemp)) || (inputFileTemp.includes(inFileName) && outputFileTemp.includes(outFileName))) {
                             this.scalingsInprogress--;
                             resolve(true);
@@ -599,6 +599,7 @@ class Upscaler {
                             jobsString += job.inputFile + ":" + job.outputFile + ";";
                         });
                         this.nextToProcess = [];
+                        console.log("jobsString: ", jobsString);
                         this.scalerExec.stdin.write(jobsString + "\n");
                     }
                 }, 2000);
@@ -607,7 +608,7 @@ class Upscaler {
                         Upscaler.log("Killing upscaler");
                         this.scalerExec.kill("SIGINT");
                         spawn("taskkill", ["/pid", this.scalerExec.pid, '/f', '/t']);
-                        spawn('killall', ['realesrgan-ncnn-vulkan']);
+                        spawn('killall', ['realesrgan-ncnn']);
                         clearInterval(this.killScalerTimeout);
                         this.killScalerTimeout = null;
                         this.killScalerTimeoutTriggered = false;
