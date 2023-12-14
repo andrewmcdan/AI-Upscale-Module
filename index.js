@@ -95,6 +95,7 @@ class Upscaler {
         }
         this.scalerExec = null;
         this.scalingsInprogress = 0;
+        this.nextToProcess = [];
     }
 
     static log(...args) {
@@ -540,7 +541,7 @@ class Upscaler {
                 spawnOpts.push("-c");
                 let stdoutString = "";
                 let stderrString = "";
-                const checkForDone = (data) => {
+                const checkForDone = async (data) => {
                     console.log("checkForDone: ", data.length);
                     if (data.includes("done")) {
                         console.log("found \"done\"");
@@ -563,6 +564,17 @@ class Upscaler {
                             console.log("Upscaler finished");
                             this.scalingsInprogress--;
                             resolve(true);
+                            await waitSeconds(1);
+                            if (this.nextToProcess.length > 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
+                                // do next jobs
+                                let jobsString = "";
+                                this.nextToProcess.forEach((job, i) => {
+                                    jobsString += job.inputFile + ":" + job.outputFile + ";";
+                                });
+                                this.nextToProcess = [];
+                                this.scalerExec.stdin.write(jobsString + "\n");
+                            }
+                            return "";
                         }
                     }
                     return data;
@@ -591,9 +603,7 @@ class Upscaler {
                 });
             } else {
                 Upscaler.log("Upscaler is already running");
-                while (this.scalingsInprogress > 0) {
-                    await waitSeconds(1);
-                }
+                this.nextToProcess.push({ inputFile, outputFile });
             }
         });
     }
