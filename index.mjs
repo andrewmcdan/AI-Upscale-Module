@@ -543,9 +543,9 @@ class Upscaler {
                 let stdoutString = "";
                 let stderrString = "";
                 const checkForDone = async (data) => {
-                    console.log("checkForDone: ", data.length);
+                    // console.log("checkForDone: ", data.length);
                     if (data.includes("done")) {
-                        console.log("found \"done\"");
+                        // console.log("found \"done\"");
                         let fileNames = ""
                         let lines = data.split("\n");
                         lines.forEach((line, i) => {
@@ -554,13 +554,14 @@ class Upscaler {
                                 // console.log("fileNames: ", fileNames)
                             }
                         });
+                        if (fileNames == "") fileNames = data;
                         let fileNames_1 = fileNames.split("->");
                         let inFileName = fileNames_1[0];
                         let outFileName = fileNames_1[1];
                         let inputFileTemp = inputFile.replaceAll("\"", "");
                         let outputFileTemp = outputFile.replaceAll("\"", "");
-                        // console.log("inFileName: ", inFileName);
-                        // console.log("outFileName: ", outFileName);
+                        console.log("inFileName: ", inFileName);
+                        console.log("outFileName: ", outFileName);
                         if ((inFileName.includes(inputFileTemp) && outFileName.includes(outputFileTemp)) || (inputFileTemp.includes(inFileName) && outputFileTemp.includes(outFileName))) {
                             this.scalingsInprogress--;
                             resolve(true);
