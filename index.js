@@ -602,8 +602,7 @@ class Upscaler {
                     resolve(false);
                     return;
                 });
-                this.checkForNextJobsInterval = setInterval(this.checkForNextJobs, 5000);
-                this.killScalerTimeout = setInterval(this.killScaler, 120 * 1000);
+
             } else {
                 Upscaler.log("Upscaler is already running");
                 this.nextToProcess.push({ inputFile, outputFile });
