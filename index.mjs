@@ -592,7 +592,7 @@ class Upscaler {
                     resolve(false);
                     return;
                 });
-                setInterval(this.checkForNextJobs, 2000);
+                this.checkForNextJobsInterval = setInterval(this.checkForNextJobs, 5000);
                 this.killScalerTimeout = setInterval(this.killScaler, 120 * 1000);
             } else {
                 Upscaler.log("Upscaler is already running");
@@ -603,6 +603,7 @@ class Upscaler {
 
     checkForNextJobs() {
         console.log("check for next jobs");
+        console.log(this.nextToProcess, this.scalingsInprogress, this.scalerExec);
         if (this.nextToProcess?.length > 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
             // do next jobs
             let jobsString = "";
@@ -622,6 +623,8 @@ class Upscaler {
             spawn("taskkill", ["/pid", this.scalerExec.pid, '/f', '/t']);
             spawn('killall', ['realesrgan-ncnn']);
             clearInterval(this.killScalerTimeout);
+            clearInterval(this.checkForNextJobsInterval);
+            this.checkForNextJobsInterval = null;
             this.killScalerTimeout = null;
             this.killScalerTimeoutTriggered = false;
             this.scalerExec = null;
