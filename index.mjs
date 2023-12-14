@@ -144,11 +144,11 @@ class Upscaler {
             latestVersion.folderName = "";
             if (unzippedFolder.length !== 0) {
                 unzippedFolder.forEach((file, i) => {
-                    let versionNo = file.substring(file.indexOf('vulkan-') + 6, file.lastIndexOf("-"));
+                    let versionNo = file.substring(file.indexOf('vulkan-') + 7, file.lastIndexOf("-"));
                     let versionNoArray = versionNo.split('.');
                     let versionNoInt = 0;
                     console.log(versionNo, versionNoArray);
-                    versionNoInt = parseInt(versionNoArray[2] * Math.pow(10, 6) + versionNoArray[0] * Math.pow(10, 3) + versionNoArray[1] * Math.pow(10, 0));
+                    versionNoInt = parseInt(versionNoArray[0] * Math.pow(10, 3) + versionNoArray[1] * Math.pow(10, 0));
                     if (versionNoInt > latestVersion.versionNo) {
                         latestVersion.versionNo = versionNoInt;
                         latestVersion.folderName = file;
