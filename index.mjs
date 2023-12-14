@@ -541,7 +541,7 @@ class Upscaler {
                 let stdoutString = "";
                 let stderrString = "";
                 const checkForDone = (data) => {
-                    console.log("checkForDone: ");
+                    console.log("checkForDone: ", data.length);
                     if (data.includes("done")) {
                         console.log("found \"done\"");
                         let fileNames = ""
