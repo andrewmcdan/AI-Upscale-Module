@@ -533,6 +533,8 @@ class Upscaler {
                 spawnOpts.push("-s " + scale);
                 spawnOpts.push("-m " + "\"" + this.models.path + "\"");
                 spawnOpts.push("-n " + modelName);
+                spawnOpts.push("-v ");
+                spawnOpts.push("-c ");
                 let stdoutString = "";
                 let stderrString = "";
                 const checkForDone = (data) => {
