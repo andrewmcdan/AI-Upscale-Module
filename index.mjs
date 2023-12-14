@@ -256,7 +256,8 @@ class Upscaler {
 
     async downloadAssets() {
         return new Promise(async (resolve, reject) => {
-            const owner = 'upscayl';
+            // const owner = 'upscayl';
+            const owner = 'andrewmcdan';
             const repo = 'upscayl-ncnn';
             let downloadSuccess = false;
 
