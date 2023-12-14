@@ -535,9 +535,11 @@ class Upscaler {
                 spawnOpts.push("-n " + modelName);
                 spawnOpts.push("-v ");
                 spawnOpts.push("-c ");
+                spawnOpts.push("-j 1:2:1 ");
                 let stdoutString = "";
                 let stderrString = "";
                 const checkForDone = (data) => {
+                    console.log("checkForDone: ", data);
                     if (data.includes("done")) {
                         let fileNames = ""
                         let lines = data.split("\n");
@@ -546,9 +548,9 @@ class Upscaler {
                                 fileNames = line;
                             }
                         });
-                        let fileNames_1 = fileNames.split(" ");
+                        let fileNames_1 = fileNames.split("->");
                         let inFileName = fileNames_1[0];
-                        let outFileName = fileNames_1[2];
+                        let outFileName = fileNames_1[1];
                         console.log("inFileName: ", inFileName);
                         console.log("outFileName: ", outFileName);
                         if ((inFileName.includes(inputFile) && outFileName.includes(outputFile)) || (inputFile.includes(inFileName) && outputFile.includes(outFileName))) {
@@ -558,7 +560,7 @@ class Upscaler {
                     }
                     return data;
                 };
-                this.scalingExec = spawn(spawnString, spawnOpts, { shell: true });
+                this.scalingExec = spawn(spawnString, spawnOpts);
                 this.scalingExec.stdout.on('data', (data) => {
                     Upscaler.log(`stdout: ${data}`);
                     if (!data.includes("%")) stdoutString += data;
