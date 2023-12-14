@@ -560,6 +560,8 @@ class Upscaler {
                     }
                     return data;
                 };
+                console.log("spawnString: ", spawnString);
+                console.log("spawnOpts: ", spawnOpts);
                 this.scalingExec = spawn(spawnString, spawnOpts);
                 this.scalingExec.stdout.on('data', (data) => {
                     Upscaler.log(`stdout: ${data}`);
