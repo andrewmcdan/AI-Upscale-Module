@@ -551,9 +551,11 @@ class Upscaler {
                         let fileNames_1 = fileNames.split("->");
                         let inFileName = fileNames_1[0];
                         let outFileName = fileNames_1[1];
+                        let inputFileTemp = inputFile.replaceAll("\"", "");
+                        let outputFileTemp = outputFile.replaceAll("\"", "");
                         console.log("inFileName: ", inFileName);
                         console.log("outFileName: ", outFileName);
-                        if ((inFileName.includes(inputFile) && outFileName.includes(outputFile)) || (inputFile.includes(inFileName) && outputFile.includes(outFileName))) {
+                        if ((inFileName.includes(inputFileTemp) && outFileName.includes(outputFileTemp)) || (inputFileTemp.includes(inFileName) && outputFileTemp.includes(outFileName))) {
                             console.log("Upscaler finished");
                             resolve(true);
                         }
