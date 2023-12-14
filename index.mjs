@@ -573,11 +573,13 @@ class Upscaler {
                 this.scalerExec.stdout.on('data', (data) => {
                     Upscaler.log(`stdout: ${data}`);
                     // if (!data.includes("%")) stdoutString += data;
+                    stdoutString += data;
                     stdoutString = checkForDone(stdoutString);
                 });
                 this.scalerExec.stderr.on('data', (data) => {
                     Upscaler.log(`stderr: ${data}`);
                     // if (!data.includes("%")) stderrString += data;
+                    stdoutString += data;
                     stderrString = checkForDone(stderrString);
                 });
                 this.scalerExec.on('close', async (code) => {
