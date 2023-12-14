@@ -565,6 +565,16 @@ class Upscaler {
                             this.scalingsInprogress--;
                             resolve(true);
                             console.log("Upscaler finished");
+                            if (this.nextToProcess.length > 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
+                                // do next jobs
+                                let jobsString = "";
+                                this.nextToProcess.forEach((job, i) => {
+                                    jobsString += job.inputFile + ":" + job.outputFile + ";";
+                                });
+                                this.nextToProcess = [];
+                                console.log("jobsString: ", jobsString);
+                                this.scalerExec.stdin.write(jobsString + "\n");
+                            }
                             return "";
                         }
                     }
@@ -601,36 +611,6 @@ class Upscaler {
         });
     }
 
-    checkForNextJobs() {
-        console.log("check for next jobs");
-        console.log(this.nextToProcess, this.scalingsInprogress, this.scalerExec);
-        if (this.nextToProcess?.length > 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
-            // do next jobs
-            let jobsString = "";
-            this.nextToProcess.forEach((job, i) => {
-                jobsString += job.inputFile + ":" + job.outputFile + ";";
-            });
-            this.nextToProcess = [];
-            console.log("jobsString: ", jobsString);
-            this.scalerExec.stdin.write(jobsString + "\n");
-        }
-    }
-
-    killScaler() {
-        if (this.nextToProcess.length == 0 && this.scalerExec !== null && this.killScalerTimeoutTriggered) {
-            Upscaler.log("Killing upscaler");
-            this.scalerExec.kill("SIGINT");
-            spawn("taskkill", ["/pid", this.scalerExec.pid, '/f', '/t']);
-            spawn('killall', ['realesrgan-ncnn']);
-            clearInterval(this.killScalerTimeout);
-            clearInterval(this.checkForNextJobsInterval);
-            this.checkForNextJobsInterval = null;
-            this.killScalerTimeout = null;
-            this.killScalerTimeoutTriggered = false;
-            this.scalerExec = null;
-        }
-        if (this.nextToProcess.length == 0 && this.scalerExec !== null) this.killScalerTimeoutTriggered = true;
-    }
 }
 
 
