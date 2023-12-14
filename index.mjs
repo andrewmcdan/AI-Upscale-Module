@@ -569,8 +569,8 @@ class Upscaler {
                     }
                     return data;
                 };
-                console.log("spawnString: ", spawnString);
-                console.log("spawnOpts: ", spawnOpts);
+                // console.log("spawnString: ", spawnString);
+                // console.log("spawnOpts: ", spawnOpts);
                 this.scalerExec = spawn(spawnString, spawnOpts, { shell: true });
                 this.scalerExec.stdout.on('data', (data) => {
                     Upscaler.log(`stdout: ${data}`);
@@ -591,36 +591,41 @@ class Upscaler {
                     resolve(false);
                     return;
                 });
-                setInterval(() => {
-                    if (this.nextToProcess.length > 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
-                        // do next jobs
-                        let jobsString = "";
-                        this.nextToProcess.forEach((job, i) => {
-                            jobsString += job.inputFile + ":" + job.outputFile + ";";
-                        });
-                        this.nextToProcess = [];
-                        console.log("jobsString: ", jobsString);
-                        this.scalerExec.stdin.write(jobsString + "\n");
-                    }
-                }, 2000);
-                this.killScalerTimeout = setInterval(() => {
-                    if (this.nextToProcess.length == 0 && this.scalerExec !== null && this.killScalerTimeoutTriggered) {
-                        Upscaler.log("Killing upscaler");
-                        this.scalerExec.kill("SIGINT");
-                        spawn("taskkill", ["/pid", this.scalerExec.pid, '/f', '/t']);
-                        spawn('killall', ['realesrgan-ncnn']);
-                        clearInterval(this.killScalerTimeout);
-                        this.killScalerTimeout = null;
-                        this.killScalerTimeoutTriggered = false;
-                        this.scalerExec = null;
-                    }
-                    if (this.nextToProcess.length == 0 && this.scalerExec !== null) this.killScalerTimeoutTriggered = true;
-                }, 120 * 1000);
+                setInterval(this.checkForNextJobs, 2000);
+                this.killScalerTimeout = setInterval(this.killScaler, 120 * 1000);
             } else {
                 Upscaler.log("Upscaler is already running");
                 this.nextToProcess.push({ inputFile, outputFile });
             }
         });
+    }
+
+    checkForNextJobs() {
+        console.log("check for next jobs");
+        if (this.nextToProcess.length > 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
+            // do next jobs
+            let jobsString = "";
+            this.nextToProcess.forEach((job, i) => {
+                jobsString += job.inputFile + ":" + job.outputFile + ";";
+            });
+            this.nextToProcess = [];
+            console.log("jobsString: ", jobsString);
+            this.scalerExec.stdin.write(jobsString + "\n");
+        }
+    }
+
+    killScaler() {
+        if (this.nextToProcess.length == 0 && this.scalerExec !== null && this.killScalerTimeoutTriggered) {
+            Upscaler.log("Killing upscaler");
+            this.scalerExec.kill("SIGINT");
+            spawn("taskkill", ["/pid", this.scalerExec.pid, '/f', '/t']);
+            spawn('killall', ['realesrgan-ncnn']);
+            clearInterval(this.killScalerTimeout);
+            this.killScalerTimeout = null;
+            this.killScalerTimeoutTriggered = false;
+            this.scalerExec = null;
+        }
+        if (this.nextToProcess.length == 0 && this.scalerExec !== null) this.killScalerTimeoutTriggered = true;
     }
 }
 
