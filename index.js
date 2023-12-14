@@ -566,6 +566,7 @@ class Upscaler {
                             resolve(true);
                             await waitSeconds(5);
                             console.log("Upscaler finished");
+                            console.log(this.nextToProcess, this.scalingsInprogress, this.scalerExec);
                             if (this.nextToProcess.length > 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
                                 // do next jobs
                                 let jobsString = "";
