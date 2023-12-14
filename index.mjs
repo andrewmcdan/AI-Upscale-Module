@@ -147,6 +147,7 @@ class Upscaler {
                     let versionNo = file.substring(file.indexOf('vulkan-') + 6, file.lastIndexOf("-"));
                     let versionNoArray = versionNo.split('.');
                     let versionNoInt = 0;
+                    console.log(versionNo, versionNoArray);
                     versionNoInt = parseInt(versionNoArray[2] * Math.pow(10, 6) + versionNoArray[0] * Math.pow(10, 3) + versionNoArray[1] * Math.pow(10, 0));
                     if (versionNoInt > latestVersion.versionNo) {
                         latestVersion.versionNo = versionNoInt;
