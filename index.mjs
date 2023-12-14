@@ -522,8 +522,8 @@ class Upscaler {
             if (this.scalerExec === null) {
                 this.upscaler.path = fs.realpathSync(this.upscaler.path);
                 inputFile = fs.realpathSync(inputFile);
-                if (outputFile.includes('\\\\')) outputFile = fs.realpathSync(outputPath) + '\\\\';
-                else outputFile = fs.realpathSync(outputPath) + '/';
+                if (outputFile.includes('\\\\')) outputFile = fs.realpathSync(outputPath) + '\\\\' + outputFile;
+                else outputFile = fs.realpathSync(outputPath) + '/' + outputFile;
                 this.models.path = fs.realpathSync(this.models.path);
                 let spawnString = this.upscaler.path;
                 let spawnOpts = [];
@@ -564,7 +564,7 @@ class Upscaler {
                 };
                 console.log("spawnString: ", spawnString);
                 console.log("spawnOpts: ", spawnOpts);
-                this.scalingExec = spawn(spawnString, spawnOpts);
+                this.scalingExec = spawn(spawnString, spawnOpts, { shell: true });
                 this.scalingExec.stdout.on('data', (data) => {
                     Upscaler.log(`stdout: ${data}`);
                     if (!data.includes("%")) stdoutString += data;
