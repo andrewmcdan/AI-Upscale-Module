@@ -380,6 +380,9 @@ class Upscaler {
                     reject("Upscaler not found");
                     return;
                 }
+                if (modelName === null) modelName = this.defaultModel;
+                if (scale === -1) scale = this.options.defaultScale;
+                if (format === "") format = this.options.defaultFormat;
                 this.executableManager = new UpscaleExecutableManager(this.upscaler.path, this.models.path, modelName, scale, format);
             }
             let job = {};
@@ -573,9 +576,15 @@ class UpscaleExecutableManager {
 
     startScaler() {
         this.exec = spawn(this.execPath, ["-f " + this.format, "-s " + this.scale, "-m " + this.modelsPath, "-n " + this.modelName, "-j 1:2:1", "-c"], { shell: true });
-        this.exec.stdout.on('data', this.scalerStdoutListener);
-        this.exec.stderr.on('data', this.scalerStderrListener);
-        this.exec.on('close', this.scalerCloseListener);
+        this.exec.stdout.on('data', (data) => {
+            this.scalerStdoutListener(data);
+        });
+        this.exec.stderr.on('data', (data) => {
+            this.scalerStderrListener(data);
+        });
+        this.exec.on('close', (code) => {
+            this.scalerCloseListener(code);
+        });
     }
 
     scalerStdoutListener(data) {
