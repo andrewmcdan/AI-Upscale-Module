@@ -94,6 +94,7 @@ class Upscaler {
             this.status = flags.READY;
         }
         this.scalerExec = null;
+        this.scalingsInprogress = 0;
     }
 
     static log(...args) {
@@ -469,6 +470,7 @@ class Upscaler {
         if (format === "") format = this.options.defaultFormat;
         if (scale === -1) scale = this.options.defaultScale;
         return new Promise(async (resolve, reject) => {
+            this.scalingsInprogress++;
             Upscaler.log({ inputFile }, { outputPath }, { format }, { scale }, { modelName });
             if (this.upscaler.status != flags.READY || this.models.status != flags.READY) {
                 Upscaler.log('Upscaler is not ready');
@@ -557,6 +559,7 @@ class Upscaler {
                         console.log("outFileName: ", outFileName);
                         if ((inFileName.includes(inputFileTemp) && outFileName.includes(outputFileTemp)) || (inputFileTemp.includes(inFileName) && outputFileTemp.includes(outFileName))) {
                             console.log("Upscaler finished");
+                            this.scalingsInprogress--;
                             resolve(true);
                         }
                     }
@@ -564,27 +567,29 @@ class Upscaler {
                 };
                 console.log("spawnString: ", spawnString);
                 console.log("spawnOpts: ", spawnOpts);
-                this.scalingExec = spawn(spawnString, spawnOpts, { shell: true });
-                this.scalingExec.stdout.on('data', (data) => {
+                this.scalerExec = spawn(spawnString, spawnOpts, { shell: true });
+                this.scalerExec.stdout.on('data', (data) => {
                     Upscaler.log(`stdout: ${data}`);
                     if (!data.includes("%")) stdoutString += data;
                     stdoutString = checkForDone(stdoutString);
                 });
-                this.scalingExec.stderr.on('data', (data) => {
+                this.scalerExec.stderr.on('data', (data) => {
                     Upscaler.log(`stderr: ${data}`);
                     if (!data.includes("%")) stderrString += data;
                     stderrString = checkForDone(stderrString);
                 });
-                this.scalingExec.on('close', async (code) => {
+                this.scalerExec.on('close', async (code) => {
                     Upscaler.log(`child process exited with code ${code}`);
-                    this.scalingExec = null;
+                    this.scalerExec = null;
                     await waitSeconds(1);
                     resolve(false);
                     return;
                 });
             } else {
                 Upscaler.log("Upscaler is already running");
-
+                while (this.scalingsInprogress > 0) {
+                    await waitSeconds(1);
+                }
             }
         });
     }
