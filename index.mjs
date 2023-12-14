@@ -533,9 +533,9 @@ class Upscaler {
                 spawnOpts.push("-s " + scale);
                 spawnOpts.push("-m " + "\"" + this.models.path + "\"");
                 spawnOpts.push("-n " + modelName);
-                spawnOpts.push("-v ");
-                spawnOpts.push("-c ");
-                spawnOpts.push("-j 1:2:1 ");
+                spawnOpts.push("-j 1:2:1");
+                spawnOpts.push("-v");
+                spawnOpts.push("-c");
                 let stdoutString = "";
                 let stderrString = "";
                 const checkForDone = (data) => {
@@ -573,6 +573,7 @@ class Upscaler {
                 });
                 this.scalingExec.on('close', async (code) => {
                     Upscaler.log(`child process exited with code ${code}`);
+                    this.scalingExec = null;
                     await waitSeconds(1);
                     resolve(false);
                     return;
