@@ -97,6 +97,8 @@ class Upscaler {
         this.scalerExec = null;
         this.scalingsInprogress = 0;
 
+        this.executableManager = null;
+
     }
 
     static log(...args) {
@@ -367,6 +369,19 @@ class Upscaler {
 
     async upscale(inputFile, outputPath = null, format = "", scale = -1, modelName = null) {
         return new Promise(async (resolve, reject) => {
+            if (this.executableManager === null) {
+                this.upscaler.path = fs.realpathSync(this.upscaler.path);
+                this.models.path = fs.realpathSync(this.models.path);
+                if (this.models.path === undefined || this.models.path === null || this.models.path === "") {
+                    reject("Models not found");
+                    return;
+                }
+                if (this.upscaler.path === undefined || this.upscaler.path === null || this.upscaler.path === "") {
+                    reject("Upscaler not found");
+                    return;
+                }
+                this.executableManager = new UpscaleExecutableManager(this.upscaler.path, this.models.path, modelName, scale, format);
+            }
             let job = {};
             job.inputFile = inputFile;
             job.outputPath = outputPath;
@@ -466,14 +481,11 @@ class Upscaler {
 
     // TODO: rewrite so that if the executable is already running, it doesn't start a new one.
     // This will be in support of the new continuous upscaler that takes jobs from stdin
-    async upscaleJob(inputFile, outputPath, format, scale, modelName) {
+    async upscaleJob(inputFile, outputPath) {
         // Upscaler.log("Upscaling: ", inputFile);
         if (outputPath === null) outputPath = this.options.defaultOutputPath;
-        if (format === "") format = this.options.defaultFormat;
-        if (scale === -1) scale = this.options.defaultScale;
         return new Promise(async (resolve, reject) => {
-
-            Upscaler.log({ inputFile }, { outputPath }, { format }, { scale }, { modelName });
+            Upscaler.log({ inputFile }, { outputPath });
             if (this.upscaler.status != flags.READY || this.models.status != flags.READY) {
                 Upscaler.log('Upscaler is not ready');
                 reject('Upscaler is not ready');
@@ -511,108 +523,127 @@ class Upscaler {
                 return;
             }
 
-            if (format !== "jpg" && format !== "png") {
-                Upscaler.log('Format is not supported');
-                reject('Format is not supported');
-                return;
-            }
+            inputFile = fs.realpathSync(inputFile);
+            if (outputFile.includes('\\\\')) outputFile = fs.realpathSync(outputPath) + '\\\\' + outputFile;
+            else outputFile = fs.realpathSync(outputPath) + '/' + outputFile;
 
-            if (scale !== 2 && scale !== 3 && scale !== 4) {
-                Upscaler.log('Scale is not supported');
-                reject('Scale is not supported');
-                return;
-            }
-            (this.executionWrapper = () => {
-                if (this.scalerExec === null) {
-                    this.upscaler.path = fs.realpathSync(this.upscaler.path);
-                    inputFile = fs.realpathSync(inputFile);
-                    if (outputFile.includes('\\\\')) outputFile = fs.realpathSync(outputPath) + '\\\\' + outputFile;
-                    else outputFile = fs.realpathSync(outputPath) + '/' + outputFile;
-                    this.models.path = fs.realpathSync(this.models.path);
-                    let spawnString = this.upscaler.path;
-                    let spawnOpts = [];
-                    spawnOpts.push("-i " + "\"" + inputFile + "\"");
-                    spawnOpts.push("-o " + "\"" + outputFile + "\"");
-                    spawnOpts.push("-f " + format);
-                    spawnOpts.push("-s " + scale);
-                    spawnOpts.push("-m " + "\"" + this.models.path + "\"");
-                    spawnOpts.push("-n " + modelName);
-                    spawnOpts.push("-j 1:2:1");
-                    spawnOpts.push("-v");
-                    spawnOpts.push("-c");
-                    let stdoutString = "";
-                    let stderrString = "";
-                    const checkForDone = async (data) => {
-                        // console.log("checkForDone: ", data.length);
-                        if (data.includes("done")) {
-                            // console.log("found \"done\"");
-
-                            let inputFileTemp = inputFile.replaceAll("\"", "");
-                            let outputFileTemp = outputFile.replaceAll("\"", "");
-                            if (data.includes(inputFileTemp) && data.includes(outputFileTemp)) {
-                                this.scalingsInprogress--;
-                                resolve(true);
-                                await waitSeconds(1);
-                                console.log("Upscaler finished");
-                                console.log(this.nextToProcess);
-                                console.log(this.scalingsInprogress);
-                                if (this.nextToProcess.length > 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
-                                    // do next jobs
-                                    let jobsString = "";
-                                    this.nextToProcess.forEach((job, i) => {
-                                        this.scalingsInprogress++;
-                                        jobsString += job.inputFile + ":" + job.outputFile + ";";
-                                    });
-                                    this.nextToProcess = [];
-                                    console.log("jobsString: ", jobsString);
-                                    this.scalerExec.child.stdin.write(jobsString + "\n");
-                                    return "";
-                                } else if (this.nextToProcess.length == 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
-                                    this.scalerExec.child.stdin.write("exit\n");
-                                }
-                            }
-                        }
-                        return data;
-                    };
-                    // console.log("spawnString: ", spawnString);
-                    // console.log("spawnOpts: ", spawnOpts);
-                    this.scalingsInprogress++;
-                    this.scalerExec = {};
-                    this.scalerExec.child = spawn(spawnString, spawnOpts, { shell: true });
-                    this.scalerExec.stdoutListener = this.scalerExec.child.stdout.on('data', (data) => {
-                        Upscaler.log(`stdout: ${data}`);
-                        // if (!data.includes("%")) stdoutString += data;
-                        stdoutString += data;
-                        stdoutString = checkForDone(stdoutString);
-                    });
-                    this.scalerExec.stderrListener = this.scalerExec.child.stderr.on('data', (data) => {
-                        Upscaler.log(`stderr: ${data}`);
-                        // if (!data.includes("%")) stderrString += data;
-                        stderrString += data;
-                        stderrString = checkForDone(stderrString);
-                    });
-                    this.scalerExec.closeListener = this.scalerExec.child.on('close', async (code) => {
-                        Upscaler.log(`child process exited with code ${code}`);
-                        this.scalerExec = null;
-                        await waitSeconds(1);
-                        resolve(false);
-                        return;
-                    });
-
-                } else {
-                    Upscaler.log("Upscaler is already running");
-                    inputFile = fs.realpathSync(inputFile);
-                    if (outputFile.includes('\\\\')) outputFile = fs.realpathSync(outputPath) + '\\\\' + outputFile;
-                    else outputFile = fs.realpathSync(outputPath) + '/' + outputFile;
-                    this.nextToProcess.push({ inputFile, outputFile });
+            let waitCount = 0;
+            while (!this.executableManager.ready) {
+                await waitSeconds(1);
+                waitCount++;
+                if (waitCount > 120) {
+                    Upscaler.log("Timeout waiting for upscaler to startup");
+                    reject("Timeout waiting for upscaler to startup");
+                    return;
                 }
-            })();
+            }
+
+            this.executableManager.addJob(inputFile, outputFile);
+
+            waitCount = 0;
+            while (this.executableManager.getNumberOfRunningJobs() > 0) {
+                await waitSeconds(1);
+                waitCount++;
+                if (waitCount > 120) {
+                    Upscaler.log("Timeout waiting for upscaler to finish");
+                    reject("Timeout waiting for upscaler to finish");
+                    return;
+                }
+            }
+            resolve(true);
         });
     }
 
 }
 
+class UpscaleExecutableManager {
+    constructor(execPath, modelsPath, modelName, scale, format) {
+        this.execPath = execPath;
+        this.modelsPath = modelsPath;
+        this.modelName = modelName;
+        this.scale = scale;
+        this.format = format;
+        this.exec = null;
+        this.nextToProcess = [];
+        this.scalingsInprogress = 0;
+        this.ready = false;
 
+        this.startScaler();
+    }
+
+    startScaler() {
+        this.exec = spawn(this.execPath, ["-f", this.format, "-s", this.scale, "-m", this.modelsPath, "-n", this.modelName, "-j", "1:2:1", "-c"], { shell: true });
+        this.exec.stdout.on('data', this.scalerStdoutListener);
+        this.exec.stderr.on('data', this.scalerStderrListener);
+        this.exec.on('close', this.scalerCloseListener);
+    }
+
+    scalerStdoutListener(data) {
+        Upscaler.log(`Upscaler stdout: ${data}`);
+        this.processDataFromExec(data);
+    }
+
+    scalerStderrListener(data) {
+        Upscaler.log(`Upscaler stderr: ${data}`);
+        this.processDataFromExec(data);
+    }
+
+    scalerCloseListener(code) {
+        Upscaler.log(`Upscaler process exited with code ${code}`);
+        this.exec = null;
+    }
+
+    processDataFromExec(data) {
+        if (data.includes("main routine")) {
+            this.ready = true;
+        } else if (data.includes("Upscayl Successful")) {
+            this.scalingsInprogress--;
+        }
+        this.processNextJobs();
+    }
+
+    addJob(inputFile, outputFile) {
+        if (this.exec === null) return false;
+        if (!this.ready) return false;
+        inputFile = fs.realpathSync(inputFile);
+        if (outputFile.includes('\\\\')) outputFile = fs.realpathSync(outputPath) + '\\\\' + outputFile;
+        else outputFile = fs.realpathSync(outputPath) + '/' + outputFile;
+        this.nextToProcess.push({ inputFile, outputFile });
+        return true;
+    }
+
+    processNextJobs() {
+        if (this.exec === null) return false;
+        if (!this.ready) return false;
+        if (this.nextToProcess.length == 0) return false;
+        if (this.scalingsInprogress != 0) return false;
+        let jobsString = "";
+        this.nextToProcess.forEach((job, i) => {
+            this.scalingsInprogress++;
+            jobsString += job.inputFile + ":" + job.outputFile + (i < this.nextToProcess.length - 1 ? ";" : "");
+        });
+        this.nextToProcess = [];
+        console.log("jobsString: ", jobsString);
+        this.exec.stdin.write(jobsString + "\n");
+        return true;
+    }
+
+    getNumberOfRunningJobs() {
+        return this.scalingsInprogress;
+    }
+
+    async stopScaler() {
+        if (this.exec === null) return false;
+        this.ready = false;
+        this.exec.stdin.write("exit\n");
+        await waitSeconds(1);
+        this.exec.kill();
+        this.exec = null;
+        spawn('taskkill', ['/pid', this.exec.pid, '/f', '/t']);
+        spawn('killall', ['realesrgan-ncnn']);
+        return true;
+    }
+}
 
 
 const downloadAndUnzip = (url, zipPath, extractPath) => {
