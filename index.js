@@ -570,12 +570,12 @@ class Upscaler {
                 this.scalerExec = spawn(spawnString, spawnOpts, { shell: true });
                 this.scalerExec.stdout.on('data', (data) => {
                     Upscaler.log(`stdout: ${data}`);
-                    if (!data.includes("%")) stdoutString += data;
+                    // if (!data.includes("%")) stdoutString += data;
                     stdoutString = checkForDone(stdoutString);
                 });
                 this.scalerExec.stderr.on('data', (data) => {
                     Upscaler.log(`stderr: ${data}`);
-                    if (!data.includes("%")) stderrString += data;
+                    // if (!data.includes("%")) stderrString += data;
                     stderrString = checkForDone(stderrString);
                 });
                 this.scalerExec.on('close', async (code) => {
