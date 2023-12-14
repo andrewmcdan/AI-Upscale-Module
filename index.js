@@ -539,7 +539,7 @@ class Upscaler {
                 let stdoutString = "";
                 let stderrString = "";
                 const checkForDone = (data) => {
-                    console.log("checkForDone: ", data);
+                    // console.log("checkForDone: ", data);
                     if (data.includes("done")) {
                         let fileNames = ""
                         let lines = data.split("\n");
