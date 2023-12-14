@@ -549,8 +549,6 @@ class Upscaler {
 
                         let inputFileTemp = inputFile.replaceAll("\"", "");
                         let outputFileTemp = outputFile.replaceAll("\"", "");
-                        console.log("inFileName: ", inFileName);
-                        console.log("outFileName: ", outFileName);
                         if (data.includes(inputFileTemp) && data.includes(outputFileTemp)) {
                             this.scalingsInprogress--;
                             resolve(true);
