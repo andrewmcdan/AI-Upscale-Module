@@ -579,28 +579,29 @@ class Upscaler {
                                 console.log("jobsString: ", jobsString);
                                 this.scalerExec.stdin.write(jobsString + "\n");
                             }
-                            return "";
                         }
+                        return "";
                     }
                     return data;
                 };
                 // console.log("spawnString: ", spawnString);
                 // console.log("spawnOpts: ", spawnOpts);
                 this.scalingsInprogress++;
-                this.scalerExec = spawn(spawnString, spawnOpts, { shell: true });
-                this.scalerExec.stdout.on('data', (data) => {
+                this.scalerExec = {};
+                this.scalerExec.child = spawn(spawnString, spawnOpts, { shell: true });
+                this.scalerExec.stdoutListener = this.scalerExec.child.stdout.on('data', (data) => {
                     Upscaler.log(`stdout: ${data}`);
                     // if (!data.includes("%")) stdoutString += data;
                     stdoutString += data;
                     stdoutString = checkForDone(stdoutString);
                 });
-                this.scalerExec.stderr.on('data', (data) => {
+                this.scalerExec.stderrListener = this.scalerExec.child.stderr.on('data', (data) => {
                     Upscaler.log(`stderr: ${data}`);
                     // if (!data.includes("%")) stderrString += data;
                     stderrString += data;
                     stderrString = checkForDone(stderrString);
                 });
-                this.scalerExec.on('close', async (code) => {
+                this.scalerExec.closeListener = this.scalerExec.child.on('close', async (code) => {
                     Upscaler.log(`child process exited with code ${code}`);
                     this.scalerExec = null;
                     await waitSeconds(1);
