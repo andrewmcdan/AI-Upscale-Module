@@ -564,6 +564,7 @@ class Upscaler {
                         if ((inFileName.includes(inputFileTemp) && outFileName.includes(outputFileTemp)) || (inputFileTemp.includes(inFileName) && outputFileTemp.includes(outFileName))) {
                             this.scalingsInprogress--;
                             resolve(true);
+                            await waitSeconds(5);
                             console.log("Upscaler finished");
                             if (this.nextToProcess.length > 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
                                 // do next jobs
