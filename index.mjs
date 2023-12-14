@@ -31,6 +31,7 @@ let downloadProgressCallback = null;
 class Upscaler {
     static loggerFunction = null;
     constructor(options) {
+        this.nextToProcess = [];
         // first we check to see if the assets are downloaded (upscaler and models). This sets the flags.
         // if they are not downloaded, we download them in the background
         if (options == undefined || options == null) {
@@ -95,7 +96,7 @@ class Upscaler {
         }
         this.scalerExec = null;
         this.scalingsInprogress = 0;
-        this.nextToProcess = [];
+
     }
 
     static log(...args) {
@@ -602,7 +603,7 @@ class Upscaler {
 
     checkForNextJobs() {
         console.log("check for next jobs");
-        if (this.nextToProcess.length > 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
+        if (this.nextToProcess?.length > 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
             // do next jobs
             let jobsString = "";
             this.nextToProcess.forEach((job, i) => {
