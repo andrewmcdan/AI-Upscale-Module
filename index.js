@@ -541,13 +541,15 @@ class Upscaler {
                 let stdoutString = "";
                 let stderrString = "";
                 const checkForDone = (data) => {
-                    // console.log("checkForDone: ", data);
+                    console.log("checkForDone: ");
                     if (data.includes("done")) {
+                        console.log("found \"done\"");
                         let fileNames = ""
                         let lines = data.split("\n");
                         lines.forEach((line, i) => {
                             if (line.includes("done")) {
                                 fileNames = line;
+                                console.log("fileNames: ", fileNames)
                             }
                         });
                         let fileNames_1 = fileNames.split("->");
@@ -575,6 +577,11 @@ class Upscaler {
                 });
                 this.scalerExec.stderr.on('data', (data) => {
                     Upscaler.log(`stderr: ${data}`);
+                    // if (!data.includes("%")) stderrString += data;
+                    stderrString = checkForDone(stderrString);
+                });
+                this.scalerExec.stdio.on('data', (data) => {
+                    Upscaler.log(`stdio: ${data}`);
                     // if (!data.includes("%")) stderrString += data;
                     stderrString = checkForDone(stderrString);
                 });
