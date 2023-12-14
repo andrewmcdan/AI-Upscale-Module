@@ -615,6 +615,7 @@ class UpscaleExecutableManager {
         if (this.exec === null) return false;
         if (!this.ready) return false;
         this.nextToProcess.push({ inputFile, outputFile });
+        this.processNextJobs();
         return true;
     }
 
