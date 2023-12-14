@@ -580,11 +580,6 @@ class Upscaler {
                     // if (!data.includes("%")) stderrString += data;
                     stderrString = checkForDone(stderrString);
                 });
-                this.scalerExec.stdio.on('data', (data) => {
-                    Upscaler.log(`stdio: ${data}`);
-                    // if (!data.includes("%")) stderrString += data;
-                    stderrString = checkForDone(stderrString);
-                });
                 this.scalerExec.on('close', async (code) => {
                     Upscaler.log(`child process exited with code ${code}`);
                     this.scalerExec = null;
