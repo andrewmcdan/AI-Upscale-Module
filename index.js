@@ -614,9 +614,6 @@ class UpscaleExecutableManager {
     addJob(inputFile, outputFile) {
         if (this.exec === null) return false;
         if (!this.ready) return false;
-        inputFile = fs.realpathSync(inputFile);
-        if (outputFile.includes('\\\\')) outputFile = fs.realpathSync(outputPath) + '\\\\' + outputFile;
-        else outputFile = fs.realpathSync(outputPath) + '/' + outputFile;
         this.nextToProcess.push({ inputFile, outputFile });
         return true;
     }
