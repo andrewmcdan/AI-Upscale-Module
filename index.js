@@ -572,7 +572,7 @@ class UpscaleExecutableManager {
     }
 
     startScaler() {
-        this.exec = spawn(this.execPath, ["-f", this.format, "-s", this.scale, "-m", this.modelsPath, "-n", this.modelName, "-j", "1:2:1", "-c"], { shell: true });
+        this.exec = spawn(this.execPath, ["-f " + this.format, "-s " + this.scale, "-m " + this.modelsPath, "-n " + this.modelName, "-j 1:2:1", "-c"], { shell: true });
         this.exec.stdout.on('data', this.scalerStdoutListener);
         this.exec.stderr.on('data', this.scalerStderrListener);
         this.exec.on('close', this.scalerCloseListener);
