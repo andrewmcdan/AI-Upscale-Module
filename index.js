@@ -543,9 +543,9 @@ class Upscaler {
                 let stdoutString = "";
                 let stderrString = "";
                 const checkForDone = async (data) => {
-                    // console.log("checkForDone: ", data.length);
+                    console.log("checkForDone: ", data.length);
                     if (data.includes("done")) {
-                        // console.log("found \"done\"");
+                        console.log("found \"done\"");
                         let fileNames = ""
                         let lines = data.split("\n");
                         lines.forEach((line, i) => {
