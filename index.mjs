@@ -546,23 +546,12 @@ class Upscaler {
                     // console.log("checkForDone: ", data.length);
                     if (data.includes("done")) {
                         // console.log("found \"done\"");
-                        let fileNames = ""
-                        let lines = data.split("\n");
-                        lines.forEach((line, i) => {
-                            if (line.includes("done")) {
-                                fileNames = line;
-                                // console.log("fileNames: ", fileNames)
-                            }
-                        });
-                        if (fileNames == "") fileNames = data;
-                        let fileNames_1 = fileNames.split("->");
-                        let inFileName = fileNames_1[0];
-                        let outFileName = fileNames_1[1];
+
                         let inputFileTemp = inputFile.replaceAll("\"", "");
                         let outputFileTemp = outputFile.replaceAll("\"", "");
                         console.log("inFileName: ", inFileName);
                         console.log("outFileName: ", outFileName);
-                        if ((inFileName.includes(inputFileTemp) && outFileName.includes(outputFileTemp)) || (inputFileTemp.includes(inFileName) && outputFileTemp.includes(outFileName))) {
+                        if (data.includes(inputFileTemp) && data.includes(outputFileTemp)) {
                             this.scalingsInprogress--;
                             resolve(true);
                             await waitSeconds(1);
@@ -579,11 +568,11 @@ class Upscaler {
                                 this.nextToProcess = [];
                                 console.log("jobsString: ", jobsString);
                                 this.scalerExec.child.stdin.write(jobsString + "\n");
+                                return "";
                             } else if (this.nextToProcess.length == 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
                                 this.scalerExec.child.stdin.write("exit\n");
                             }
                         }
-                        return "";
                     }
                     return data;
                 };
