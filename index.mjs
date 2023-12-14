@@ -472,7 +472,7 @@ class Upscaler {
         if (format === "") format = this.options.defaultFormat;
         if (scale === -1) scale = this.options.defaultScale;
         return new Promise(async (resolve, reject) => {
-            this.scalingsInprogress++;
+
             Upscaler.log({ inputFile }, { outputPath }, { format }, { scale }, { modelName });
             if (this.upscaler.status != flags.READY || this.models.status != flags.READY) {
                 Upscaler.log('Upscaler is not ready');
@@ -566,11 +566,13 @@ class Upscaler {
                             resolve(true);
                             await waitSeconds(5);
                             console.log("Upscaler finished");
-                            console.log(this.nextToProcess, this.scalingsInprogress, this.scalerExec);
+                            console.log(this.nextToProcess);
+                            console.log(this.scalingsInprogress);
                             if (this.nextToProcess.length > 0 && this.scalingsInprogress == 0 && this.scalerExec !== null) {
                                 // do next jobs
                                 let jobsString = "";
                                 this.nextToProcess.forEach((job, i) => {
+                                    this.scalingsInprogress++;
                                     jobsString += job.inputFile + ":" + job.outputFile + ";";
                                 });
                                 this.nextToProcess = [];
@@ -584,6 +586,7 @@ class Upscaler {
                 };
                 // console.log("spawnString: ", spawnString);
                 // console.log("spawnOpts: ", spawnOpts);
+                this.scalingsInprogress++;
                 this.scalerExec = spawn(spawnString, spawnOpts, { shell: true });
                 this.scalerExec.stdout.on('data', (data) => {
                     Upscaler.log(`stdout: ${data}`);
@@ -607,6 +610,9 @@ class Upscaler {
 
             } else {
                 Upscaler.log("Upscaler is already running");
+                inputFile = fs.realpathSync(inputFile);
+                if (outputFile.includes('\\\\')) outputFile = fs.realpathSync(outputPath) + '\\\\' + outputFile;
+                else outputFile = fs.realpathSync(outputPath) + '/' + outputFile;
                 this.nextToProcess.push({ inputFile, outputFile });
             }
         });
