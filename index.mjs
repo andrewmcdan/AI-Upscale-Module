@@ -456,7 +456,7 @@ class Upscaler {
                 let job = this.upscaleJobs.shift();
                 if (job.status == "cancelled") continue;
                 job.status = "processing";
-                waiter.push(this.upscaleJob(job.inputFile, job.outputPath, job.format, job.scale, job.modelName).then((success) => {
+                waiter.push(this.upscaleJob(job.inputFile, job.outputPath, job.format).then((success) => {
                     if (success) {
                         job.status = "complete";
                     } else {
@@ -481,7 +481,7 @@ class Upscaler {
 
     // TODO: rewrite so that if the executable is already running, it doesn't start a new one.
     // This will be in support of the new continuous upscaler that takes jobs from stdin
-    async upscaleJob(inputFile, outputPath) {
+    async upscaleJob(inputFile, outputPath, format) {
         // Upscaler.log("Upscaling: ", inputFile);
         if (outputPath === null) outputPath = this.options.defaultOutputPath;
         return new Promise(async (resolve, reject) => {
