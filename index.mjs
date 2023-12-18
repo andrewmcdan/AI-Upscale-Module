@@ -388,8 +388,8 @@ class Upscaler {
             let job = {};
             job.inputFile = inputFile;
             job.outputPath = outputPath;
-            job.format = format;
-            job.scale = scale;
+            job.format = format == "" ? this.options.defaultFormat : format;
+            job.scale = scale == -1 ? this.options.defaultScale : scale;
             job.status = "waiting";
             if (modelName !== null) job.modelName = modelName;
             else job.modelName = this.defaultModel;
@@ -607,11 +607,15 @@ class UpscaleExecutableManager {
             this.ready = true;
         } else if (data.includes("Upscayl Successful")) {
             this.scalingsInprogress--;
+        } else if (data.includes("failed")) {
+            this.scalingsInprogress--;
         }
         this.processNextJobs();
     }
 
     addJob(inputFile, outputFile) {
+        // TODO: return promise and set resolve as this.addjobresolve so that this.processdatafromexec can resolve the promise
+
         if (this.exec === null) return false;
         if (!this.ready) return false;
         this.nextToProcess.push({ inputFile, outputFile });
